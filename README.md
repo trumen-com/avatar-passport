@@ -180,3 +180,29 @@ YOLO_AUTOINSTALL=false AVTO_DATA_DIR=var .venv/bin/uvicorn avtopassport.api.app:
 
 Not deployed yet. The Dockerfile and a manual-only GitHub Actions workflow are ready, but the public Space needs HF PRO
 (see `docs/decisions/003-deploy-hf-docker-local-first.md`). That decision is the user's, after testing locally.
+
+### Persistence on Hugging Face (optional)
+
+The Space disk is not persistent, so a restart would wipe the passport history and break the "repeat inspection shows a
+diff" demo. `src/avtopassport/api/persist.py` can keep it in a **private** Hugging Face dataset repo. It is off unless
+both variables below are set; with them unset nothing changes.
+
+| Variable | Where | Meaning |
+|---|---|---|
+| `AVTO_SNAPSHOT_REPO` | Space variable | dataset repo id, e.g. `<user>/avtopassport-data`; created as a private dataset on the first snapshot |
+| `HF_TOKEN` | Space **secret** | token with write access to that repo |
+| `AVTO_SNAPSHOT_EVERY_MIN` | Space variable, optional | snapshot interval in minutes (default 5) |
+
+- **At startup**, if there is no local `passports.sqlite`, the app downloads `snapshots/latest.tar.gz` and restores it.
+  A local DB is never overwritten. If the download fails, the app logs a warning and starts with an empty history.
+- **Snapshots** run every N minutes, about 30 s after each finished inspection, and once at shutdown. Nothing is uploaded
+  when the content has not changed. The archive holds a consistent copy of the DB (SQLite backup API), plus
+  `state.json`, `report.json` and `report.pdf` of each finished job, and a manifest with a SHA-256 for every file.
+  The app refuses to upload to a repo that is not private.
+- **Not stored:** blurred frames, masks, try-on images, 3D models and uploads. They are large (tens of MB per
+  inspection), and keeping the minimum is the privacy default, even though the frames are blurred. A restored
+  inspection therefore shows its findings, diff and PDF, and says that its frames and 3D model were not kept.
+- **Privacy:** the PDFs contain blurred frames and the reports contain VINs, so the dataset repo must stay private.
+  Delete it after the demo.
+- **Loss window:** anything written after the last snapshot is lost on a restart (ADR 003).
+- `/api/health` returns `persistence: {enabled, last_snapshot_utc, last_error, last_restore, every_min}`.

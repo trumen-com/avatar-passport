@@ -89,3 +89,5 @@ Sources:
 [render-plans]: https://render.com/docs/compute-plans
 [gcp-free]: https://cloud.google.com/free/docs/free-cloud-features
 [cf-quick]: https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/
+
+**Update 2026-10-11:** implemented as opt-in (`src/avtopassport/api/persist.py`), enabled by `AVTO_SNAPSHOT_REPO` + `HF_TOKEN`. It uses `HfApi.upload_file` of one archive (DB backup + small job files + manifest) every `AVTO_SNAPSHOT_EVERY_MIN` minutes (default 5) and after each inspection, instead of `CommitScheduler`.

@@ -360,6 +360,7 @@ class _InspectionTask:
 class JobManager:
     settings: Settings
     backends: Backends = field(default_factory=Backends)
+    on_stored: Callable[[str], None] | None = None  # called with the job id after a passport is stored (snapshots)
 
     def __post_init__(self) -> None:
         self._lock = threading.RLock()
@@ -827,6 +828,11 @@ class JobManager:
             st.update(status="done", result=result_dict, report=report, diff=diff_obj, inspection_id=inspection_id,
                       media=media, error=None)
         self._save(job_id)
+        if self.on_stored is not None and inspection_id is not None:
+            try:
+                self.on_stored(job_id)
+            except Exception:  # a persistence hook must never fail the inspection
+                log.exception("on_stored hook failed")
         self._prepare_hq(job_id)
         self._schedule_recon3d(job_id)
 

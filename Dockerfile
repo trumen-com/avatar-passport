@@ -111,6 +111,7 @@ RUN if [ "$ENABLE_3D" = "1" ]; then \
     fi
 
 # The Space disk is not persistent (ADR 003): AVTO_DATA_DIR=/tmp/avtopassport holds jobs, frames and SQLite and is
-# lost on restart. Mount a volume and point AVTO_DATA_DIR at it to keep passports.
+# lost on restart. To keep passports across restarts set AVTO_SNAPSHOT_REPO (private HF dataset) + HF_TOKEN:
+# src/avtopassport/api/persist.py snapshots the SQLite DB and job reports there and restores them at startup.
 EXPOSE 7860
 CMD ["uvicorn", "avtopassport.api.app:app", "--host", "0.0.0.0", "--port", "7860"]

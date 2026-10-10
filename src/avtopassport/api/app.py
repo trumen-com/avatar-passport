@@ -15,6 +15,8 @@ Environment:
     AVTO_MAX_VIDEO_MB    upload limit (default 200)
     AVTO_COMMIT_SHA      deployed commit, shown by /api/version (AGPL-3.0 section 13 source link)
     AVTO_REPO_URL        repository URL for the source link
+    AVTO_SNAPSHOT_REPO + HF_TOKEN  opt-in: restore/snapshot passports to a private HF dataset repo (api/persist.py)
+    AVTO_SNAPSHOT_EVERY_MIN        snapshot interval in minutes (default 5)
 
 The API contract the web page codes against is the docstring of each route; every response is JSON except the
 media routes (jpg / png / pdf / ply).
@@ -22,6 +24,7 @@ media routes (jpg / png / pdf / ply).
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -39,6 +42,7 @@ from fastapi.staticfiles import StaticFiles
 from .. import __version__
 from ..paths import REPO_ROOT
 from .jobs import API_PREFIX, Backends, JobManager, Settings, jsonable
+from .persist import Persister
 from .shops import ATTRIBUTION_URL, SOURCE, ShopFinder, ShopsUnavailable
 
 log = logging.getLogger("avtopassport.api")
@@ -98,24 +102,30 @@ def _findings_of(inspection: dict[str, Any]) -> list[Any]:
 
 
 def create_app(*, settings: Settings | None = None, backends: Backends | None = None,
-               shops: ShopFinder | None = None, web_dir: Path | None = None) -> FastAPI:
+               shops: ShopFinder | None = None, web_dir: Path | None = None,
+               persister: Persister | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
-    jobs = JobManager(settings, backends or Backends())
+    persist = persister or Persister.from_env(settings.data_dir)
+    jobs = JobManager(settings, backends or Backends(), on_stored=persist.notify)
     finder = shops or ShopFinder(settings.data_dir / "cache")
     web = web_dir or REPO_ROOT / "web"
     upload_limit = settings.max_video_bytes + settings.max_photo_bytes + CHUNK
 
     @asynccontextmanager
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        await asyncio.to_thread(persist.restore)  # before jobs.start(): it reloads job states from disk
         jobs.start()
+        persist.start()
         yield
         jobs.stop()
+        await asyncio.to_thread(persist.stop)     # last snapshot, bounded
 
     app = FastAPI(title="AvtoPassport", version=__version__, lifespan=lifespan,
                   docs_url="/api/docs", redoc_url=None, openapi_url="/api/openapi.json",
                   swagger_ui_oauth2_redirect_url="/api/docs/oauth2-redirect")
     app.state.jobs = jobs
     app.state.shops = finder
+    app.state.persist = persist
 
     @app.middleware("http")
     async def reject_huge_uploads(request: Request, call_next: Any) -> Response:
@@ -138,12 +148,13 @@ def create_app(*, settings: Settings | None = None, backends: Backends | None = 
     # ------------------------------------------------------------------ service
     @app.get("/api/health")
     def health() -> dict[str, Any]:
-        """{"ok": true, "device", "models_ready", "recon3d_available", "version", ...}"""
+        """{"ok": true, "device", "models_ready", "recon3d_available", "version", "persistence", ...}"""
         ok3d, msg3d = jobs.recon3d_available_nowait()
         return {"ok": True, "device": jobs.device, "models_ready": jobs.models_ready,
                 "models_error": jobs.models_error, "recon3d_available": ok3d, "recon3d_message": msg3d,
                 "hq3d_enabled": settings.enable_hq3d,
-                "version": __version__, "commit": commit_sha(), "queue": jobs.queue_sizes()}
+                "version": __version__, "commit": commit_sha(), "queue": jobs.queue_sizes(),
+                "persistence": persist.status()}
 
     @app.get("/api/version")
     def version() -> dict[str, Any]:
