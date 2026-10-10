@@ -903,3 +903,9 @@ details.more > summary { cursor: pointer; font-weight: 600; min-height: 40px; di
 }
 
 .registry-item.active { border-color: var(--synthetic); outline: 2px solid var(--synthetic); }
+
+/* ---------- damage confidence ---------- */
+
+details.low-conf { border-left: 3px solid var(--warn); padding-left: 0.6rem; }
+details.low-conf > summary { color: var(--warn); }
+.finding-note { color: var(--warn); margin-top: 0.15rem; }

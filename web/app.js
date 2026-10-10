@@ -7,7 +7,11 @@ const POLL_MS = 2000;          // job polling while queued/running
 const RECON_POLL_MS = 5000;    // 3D reconstruction polling after the passport is done
 const RECON_MAX_POLLS = 720;   // stop watching after ~1 hour
 const MAX_POLL_FAILURES = 30;  // consecutive network failures before giving up
+const RECON_HQ_MAX_POLLS = 1800; // ~2.5 hours while the optional high-quality 3D is building
 const TASHKENT = { lat: 41.3111, lon: 69.2797 };
+// Findings whose best detection score is below this go into a collapsed "please verify" group and out of the
+// headline total. Uncalibrated default; replace with per-class thresholds from Phase 2 (scripts/eval.py).
+const LOW_CONFIDENCE = 0.5;
 const SHOP_RADIUS_M = 5000;
 
 const state = {
@@ -18,6 +22,8 @@ const state = {
   job: null,
   viewer: null,
   viewerPly: null,
+  viewerHq: null,
+  viewerSplat: null,
   palette: null,
   tryonToken: 0,
   tryonUrl: null,
@@ -790,51 +796,102 @@ function costCell(cost) {
   );
 }
 
+function isLowConfidence(f) {
+  const score = Number(f && f.max_score);
+  return Number.isFinite(score) && score < LOW_CONFIDENCE; // no score reported -> not hidden
+}
+
+function isWindshieldGlass(f) {
+  const dmg = String((f && f.damage) || "").toLowerCase().replace(/[_-]+/g, " ");
+  const part = String((f && f.part) || "").toLowerCase();
+  return dmg.includes("glass shatter") && /windshield|windscreen|front.?glass/.test(part);
+}
+
+function findingRows(list, costFor, counter) {
+  return list.map((f) => {
+    const cost = costFor(f);
+    if (!cost || cost.price_uzs == null) counter.unpriced += 1;
+    else counter.sum += Number(cost.price_uzs);
+    const sev = f.severity || null;
+    const score = Number(f.max_score);
+    return el(
+      "tr",
+      {},
+      el("td", { "data-label": "Part" }, el("strong", {}, humanize(f.part))),
+      el(
+        "td",
+        { "data-label": "Damage" },
+        el(
+          "span",
+          {},
+          humanize(f.damage),
+          el("div", { class: "small muted" }, `${f.n_observations ?? "?"} view${f.n_observations === 1 ? "" : "s"}${Number.isFinite(score) ? ` · score ${score.toFixed(2)}` : ""}`),
+          isWindshieldGlass(f) ? el("div", { class: "small finding-note" }, "Reflections often trigger this class (see smoke test observations).") : null,
+        ),
+      ),
+      el(
+        "td",
+        { "data-label": "Severity" },
+        sev ? el("span", { class: `badge sev-${sev}`, title: f.severity_rule || "" }, sev) : el("span", { class: "muted" }, "not rated"),
+      ),
+      el("td", { "data-label": "Action" }, f.action ? ACTION_TEXT[f.action] || humanize(f.action) : el("span", { class: "muted" }, "none")),
+      el("td", { "data-label": "Cost", class: "num" }, costCell(cost)),
+    );
+  });
+}
+
+function findingTable(rows) {
+  return el(
+    "div",
+    { class: "table-wrap" },
+    el(
+      "table",
+      { class: "data responsive" },
+      el("thead", {}, el("tr", {}, el("th", {}, "Part"), el("th", {}, "Damage"), el("th", {}, "Severity"), el("th", {}, "Action"), el("th", { class: "num" }, "Cost"))),
+      el("tbody", {}, rows),
+    ),
+  );
+}
+
 function renderDamage(r) {
   const findings = Array.isArray(r.findings) ? r.findings : [];
   const costs = Array.isArray(r.costs) ? r.costs : [];
   const body = $("#damage-body");
   body.replaceChildren();
-  $("#damage-count").textContent = String(findings.length);
+  const main = findings.filter((f) => !isLowConfidence(f));
+  const low = findings.filter(isLowConfidence);
+  $("#damage-count").textContent = low.length ? `${main.length} + ${low.length} to verify` : String(main.length);
 
   const usedCosts = new Set();
-  let unpriced = 0;
   const costFor = (f) => {
     const i = costs.findIndex((c, j) => !usedCosts.has(j) && c.part === f.part && c.damage === f.damage);
     if (i < 0) return null;
     usedCosts.add(i);
     return costs[i];
   };
+  const mainSum = { sum: 0, unpriced: 0 };
+  const lowSum = { sum: 0, unpriced: 0 };
 
   if (!findings.length) {
     body.append(el("p", {}, "No damage was detected in the walkaround frames."));
     body.append(el("p", { class: "small muted" }, "This means the models found nothing above their thresholds, not that the car is guaranteed damage-free. Check the 360° view."));
   } else {
-    const rows = findings.map((f) => {
-      const cost = costFor(f);
-      if (!cost || cost.price_uzs == null) unpriced += 1;
-      const sev = f.severity || null;
-      return el(
-        "tr",
-        {},
-        el("td", { "data-label": "Part" }, el("strong", {}, humanize(f.part))),
-        el("td", { "data-label": "Damage" }, el("span", {}, humanize(f.damage), el("div", { class: "small muted" }, `${f.n_observations ?? "?"} view${f.n_observations === 1 ? "" : "s"}${Number.isFinite(Number(f.max_score)) ? ` · score ${Number(f.max_score).toFixed(2)}` : ""}`))),
+    if (main.length) {
+      body.append(findingTable(findingRows(main, costFor, mainSum)));
+    } else {
+      body.append(el("p", {}, `No finding reached the confidence threshold (score ${LOW_CONFIDENCE.toFixed(2)}).`));
+    }
+    if (low.length) {
+      body.append(
         el(
-          "td",
-          { "data-label": "Severity" },
-          sev ? el("span", { class: `badge sev-${sev}`, title: f.severity_rule || "" }, sev) : el("span", { class: "muted" }, "not rated"),
+          "details",
+          { class: "more low-conf" },
+          el("summary", {}, `Low confidence - please verify (${low.length})`),
+          el("p", { class: "small muted" }, `Best detection score below ${LOW_CONFIDENCE.toFixed(2)}. The models are not calibrated yet, so these are often false positives (reflections, dirt, panel gaps). Check them on the car or in the 360° view; they are not in the headline total.`),
+          findingTable(findingRows(low, costFor, lowSum)),
         ),
-        el("td", { "data-label": "Action" }, f.action ? ACTION_TEXT[f.action] || humanize(f.action) : el("span", { class: "muted" }, "none")),
-        el("td", { "data-label": "Cost", class: "num" }, costCell(cost)),
       );
-    });
-    const table = el(
-      "table",
-      { class: "data responsive" },
-      el("thead", {}, el("tr", {}, el("th", {}, "Part"), el("th", {}, "Damage"), el("th", {}, "Severity"), el("th", {}, "Action"), el("th", { class: "num" }, "Cost"))),
-      el("tbody", {}, rows),
-    );
-    body.append(el("div", { class: "table-wrap" }, table));
+    }
 
     const rules = findings.filter((f) => f.severity_rule);
     if (rules.length) {
@@ -862,20 +919,30 @@ function renderDamage(r) {
     );
   }
 
+  // Totals are summed here from the same cost lines the server returned (its total_from_uzs covers all findings).
   const total = $("#damage-total");
+  const anyPriced = costs.some((c) => c && c.price_uzs != null);
   if (!findings.length) {
     total.hidden = true;
-  } else if (r.total_from_uzs != null) {
-    const missing = unpriced;
-    total.replaceChildren(
-      el("span", {}, "Estimated repair total", missing > 0 ? el("div", { class: "small muted" }, `${missing} item${missing === 1 ? " has" : "s have"} no price data and ${missing === 1 ? "is" : "are"} not included`) : null),
-      el("strong", {}, `from ${fmtUZS(r.total_from_uzs)}`),
-    );
-    total.hidden = false;
-  } else {
+    return;
+  }
+  if (!anyPriced) {
     total.replaceChildren(el("span", {}, "Estimated repair total"), el("span", { class: "muted" }, "no price data"));
     total.hidden = false;
+    return;
   }
+  const missing = mainSum.unpriced;
+  const lines = [];
+  if (missing > 0) lines.push(el("div", { class: "small muted" }, `${missing} item${missing === 1 ? " has" : "s have"} no price data and ${missing === 1 ? "is" : "are"} not included`));
+  if (low.length) {
+    const all = mainSum.sum + lowSum.sum;
+    lines.push(el("div", { class: "small muted" }, `including low-confidence items: from ${fmtUZS(all)}`));
+  }
+  total.replaceChildren(
+    el("span", {}, low.length ? `Estimated repair total (score ≥ ${LOW_CONFIDENCE.toFixed(2)})` : "Estimated repair total", ...lines),
+    main.length && mainSum.sum > 0 ? el("strong", {}, `from ${fmtUZS(mainSum.sum)}`) : el("span", { class: "muted" }, main.length ? "no price data" : "nothing above the threshold"),
+  );
+  total.hidden = false;
 }
 
 // ---------- diff & history
@@ -1083,11 +1150,23 @@ function reconOf(job) {
 }
 
 const isReconFinal = (s) => s === "done" || s === "error" || s === "unavailable";
+const HQ_ACTIVE = new Set(["waiting", "queued", "running"]);
+
+function hqOf(job) {
+  const h = job && job.recon3d_hq;
+  return h && typeof h === "object" ? h : null;
+}
+
+function keepWatching(job) {
+  const r = reconOf(job);
+  const h = hqOf(job);
+  return Boolean((r && !isReconFinal(r.status)) || (h && HQ_ACTIVE.has(h.status)));
+}
 
 function watchRecon(token, job) {
-  const r = reconOf(job);
-  renderRecon(r);
-  if (!r || isReconFinal(r.status)) return;
+  renderRecon(reconOf(job));
+  renderHq(hqOf(job));
+  if (!keepWatching(job)) return;
   setTimeout(() => pollRecon(token, 1, 0), RECON_POLL_MS);
 }
 
@@ -1108,10 +1187,11 @@ async function pollRecon(token, n, failures) {
   }
   if (token !== state.pollToken) return;
   state.job = job;
-  const r = reconOf(job);
-  renderRecon(r);
-  if (!r || isReconFinal(r.status)) return;
-  if (n >= RECON_MAX_POLLS) {
+  renderRecon(reconOf(job));
+  renderHq(hqOf(job));
+  if (!keepWatching(job)) return;
+  const hqActive = Boolean(hqOf(job) && HQ_ACTIVE.has(hqOf(job).status));
+  if (n >= (hqActive ? RECON_HQ_MAX_POLLS : RECON_MAX_POLLS)) {
     $("#recon-status").textContent = "Stopped watching after one hour; the 3D model is still not finished. Reload the page to check again.";
     return;
   }
@@ -1148,7 +1228,7 @@ function renderRecon(r) {
         errEl.textContent = "The server reports the 3D model as done but returned no model file.";
         errEl.hidden = false;
       } else if (state.viewerPly !== ply) {
-        mountViewer(ply, Array.isArray(r.pins) ? r.pins : []);
+        mountViewer(ply, confidentPins(r.pins), r.view || null);
       }
       renderReconPins(Array.isArray(r.pins) ? r.pins : []);
       break;
@@ -1169,6 +1249,11 @@ function renderRecon(r) {
   }
 }
 
+// Pins drawn in the 3D viewers: same LOW_CONFIDENCE rule as the damage list (no score reported -> drawn).
+function confidentPins(pins) {
+  return (Array.isArray(pins) ? pins : []).filter((p) => !(Number.isFinite(Number(p && p.score)) && Number(p.score) < LOW_CONFIDENCE));
+}
+
 function renderReconPins(pins) {
   const box = $("#recon-pins");
   box.replaceChildren();
@@ -1183,13 +1268,18 @@ function renderReconPins(pins) {
       { class: "notes" },
       pins.map((p) => {
         const score = Number(p.score);
-        return el("li", {}, `${humanize(p.damage)} on ${humanize(p.part)}${p.n_views != null ? ` · seen in ${p.n_views} view${p.n_views === 1 ? "" : "s"}` : ""}${Number.isFinite(score) ? ` · score ${score.toFixed(2)}` : ""}`);
+        const low = Number.isFinite(score) && score < LOW_CONFIDENCE;
+        return el(
+          "li",
+          { class: low ? "muted" : "" },
+          `${humanize(p.damage)} on ${humanize(p.part)}${p.n_views != null ? ` · seen in ${p.n_views} view${p.n_views === 1 ? "" : "s"}` : ""}${Number.isFinite(score) ? ` · score ${score.toFixed(2)}` : ""}${low ? " · low confidence, not drawn in 3D" : ""}`,
+        );
       }),
     ),
   );
 }
 
-async function mountViewer(plyUrl, pins) {
+async function mountViewer(plyUrl, pins, view) {
   state.viewerPly = plyUrl;
   const box = $("#viewer3d");
   const errEl = $("#recon-error");
@@ -1198,13 +1288,113 @@ async function mountViewer(plyUrl, pins) {
   try {
     const mod = await import("./viewer3d.js");
     if (state.viewer) state.viewer.dispose();
-    state.viewer = await mod.createViewer(box, { plyUrl, pins });
+    state.viewer = await mod.createViewer(box, { plyUrl, pins, view });
   } catch (e) {
     console.error(e);
     box.hidden = true;
     errEl.textContent = `The 3D model is ready but could not be shown in this browser: ${e && e.message ? e.message : e}`;
     errEl.hidden = false;
     state.viewerPly = null;
+  }
+}
+
+// ---------- optional high-quality 3D (Gaussian splats, GPU worker only)
+
+function fmtMin(sec) {
+  const s = Number(sec);
+  return Number.isFinite(s) ? `${(s / 60).toFixed(s < 600 ? 1 : 0)} min` : null;
+}
+
+function renderHq(h) {
+  const card = $("#hq-card");
+  // disabled / unavailable / not started: this server has no GPU worker for it, so nothing is shown (no fake).
+  if (!h || !["waiting", "queued", "running", "done", "error"].includes(h.status)) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  const st = $("#hq-status");
+  const badge = $("#hq-badge");
+  const errEl = $("#hq-error");
+  errEl.hidden = true;
+  badge.textContent = humanize(h.status);
+  const prev = h.previous_run && typeof h.previous_run === "object" ? h.previous_run : null;
+  switch (h.status) {
+    case "waiting":
+    case "queued":
+    case "running": {
+      badge.className = "badge info";
+      let text = h.status === "waiting" ? " Waiting for the point-cloud 3D job, then building the high-quality 3D on the GPU" : " Building the high-quality 3D on the GPU";
+      const prevMin = prev ? fmtMin(prev.seconds_total) : null;
+      if (prevMin && prev.steps) {
+        text += ` (the last build on this server took ${prevMin} for ${Number(prev.steps).toLocaleString()} steps from ${prev.n_images ?? "?"} frames; measured)`;
+      }
+      if (Number.isFinite(Number(h.n_frames))) text += ` · ${h.n_frames} blurred frames`;
+      st.replaceChildren(el("span", { class: "spinner", "aria-hidden": "true" }), `${text}…`);
+      break;
+    }
+    case "done": {
+      badge.className = "badge ok";
+      const rep = h.report && typeof h.report === "object" ? h.report : {};
+      const parts = [];
+      const total = fmtMin(h.seconds);
+      if (total) parts.push(`built in ${total}`);
+      if (rep.n_registered != null && rep.n_images != null) parts.push(`${rep.n_registered}/${rep.n_images} frames calibrated by structure-from-motion`);
+      if (Number.isFinite(Number(rep.mean_reprojection_error_px))) parts.push(`mean reprojection error ${Number(rep.mean_reprojection_error_px).toFixed(2)} px`);
+      if (Number.isFinite(Number(rep.psnr))) {
+        const pe = rep.psnr_eval && typeof rep.psnr_eval === "object" ? rep.psnr_eval : {};
+        const nv = Number.isFinite(Number(pe.n_views)) ? ` on ${pe.n_views} eval views` : "";
+        const car = Number.isFinite(Number(rep.psnr_car)) ? `, ${Number(rep.psnr_car).toFixed(1)} dB on the car` : "";
+        parts.push(`PSNR ${Number(rep.psnr).toFixed(1)} dB whole image${car}${nv}`);
+      }
+      if (rep.steps) parts.push(`${Number(rep.steps).toLocaleString()} training steps`);
+      st.textContent = parts.length ? `High-quality 3D ${parts.join(" · ")}.` : "High-quality 3D built.";
+      const crop = rep.crop && typeof rep.crop === "object" ? rep.crop : null;
+      const full = safeHref(h.splat_full);
+      const note = $("#hq-crop");
+      note.replaceChildren();
+      if (h.cropped && crop && Number.isFinite(Number(crop.n_splats_car))) {
+        note.append(
+          `Cropped to the car: ${Number(crop.n_splats_car).toLocaleString()} of ${Number(crop.n_splats).toLocaleString()} Gaussians kept (box from the structure-from-motion points inside the car masks; background and oversized "streak" Gaussians removed).`,
+          full ? el("span", {}, " ", el("a", { href: full, download: "" }, "Download the uncropped model (.ply)")) : null,
+        );
+      }
+      const splat = safeHref(h.splat);
+      if (!splat) {
+        errEl.textContent = "The server reports the high-quality 3D as done but returned no model file.";
+        errEl.hidden = false;
+      } else if (state.viewerSplat !== splat) {
+        mountHqViewer(splat, confidentPins(h.pins), h.view || null);
+      }
+      break;
+    }
+    case "error":
+      badge.className = "badge err";
+      st.textContent = "";
+      errEl.textContent = `High-quality 3D failed: ${h.error || "the server did not return an error message."}`;
+      errEl.hidden = false;
+      break;
+    default:
+      break;
+  }
+}
+
+async function mountHqViewer(splatUrl, pins, view) {
+  state.viewerSplat = splatUrl;
+  const box = $("#viewer-hq");
+  const errEl = $("#hq-error");
+  box.hidden = false;
+  box.replaceChildren(el("p", { class: "small muted" }, "Loading the splat viewer…"));
+  try {
+    const mod = await import("./viewer3d.js");
+    if (state.viewerHq) state.viewerHq.dispose();
+    state.viewerHq = await mod.createViewer(box, { splatUrl, pins, view });
+  } catch (e) {
+    console.error(e);
+    box.hidden = true;
+    errEl.textContent = `The high-quality 3D is ready but could not be shown in this browser: ${e && e.message ? e.message : e}`;
+    errEl.hidden = false;
+    state.viewerSplat = null;
   }
 }
 

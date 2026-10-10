@@ -9,12 +9,13 @@
   <meta name="description" content="AvtoPassport: a phone walkaround video becomes a verified digital condition passport tied to the car's VIN.">
   <title>AvtoPassport</title>
   <link rel="stylesheet" href="style.css">
-  <!-- three.js (MIT) pinned; only loaded when a 3D model is ready (viewer3d.js is imported on demand). -->
+  <!-- three.js (MIT) and Spark (MIT, Gaussian splats) pinned; only loaded when a 3D model is ready (viewer3d.js is imported on demand). -->
   <script type="importmap">
   {
     "imports": {
       "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/",
+      "@sparkjsdev/spark": "https://cdn.jsdelivr.net/npm/@sparkjsdev/spark@2.3.1/dist/spark.module.js"
     }
   }
   </script>
@@ -183,6 +184,16 @@
         <p id="recon-error" class="error" hidden></p>
         <div id="recon-pins"></div>
         <p class="small muted">Reconstructed on the server from the blurred walkaround frames, after the passport is returned. One finger rotates, two fingers zoom and pan.</p>
+      </div>
+
+      <!-- Optional high-quality 3D (shown only when the server has a GPU worker for it) -->
+      <div id="hq-card" class="card" aria-labelledby="hq-title" hidden>
+        <h2 id="hq-title">High-quality 3D (Gaussian splats) <span id="hq-badge" class="badge"></span></h2>
+        <p id="hq-status" role="status"></p>
+        <div id="viewer-hq" hidden></div>
+        <p id="hq-crop" class="small muted"></p>
+        <p id="hq-error" class="error" hidden></p>
+        <p class="small muted">Camera poses from COLMAP structure-from-motion, then Brush Gaussian-splat training, on the same blurred frames. Requires a GPU worker; not available on the CPU-only public deployment.</p>
       </div>
 
       <!-- Body shops -->
