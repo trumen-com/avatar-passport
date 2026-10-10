@@ -1,0 +1,1883 @@
+{
+  "badge": "SYNTHETIC DEMO DATA",
+  "generator": "scripts/generate_synthetic.py",
+  "notice": "Generated sandbox data: not real registry, police, insurer or dealer records. Show the SYNTHETIC DEMO DATA badge wherever it is used and never attach it to a scanned VIN. Method: data/synthetic/README.md.",
+  "records": [
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0001",
+          "date": "2023-06-02",
+          "description": "Moderate front impact affecting left_headlight (synthetic record)",
+          "parts": [
+            "left_headlight"
+          ],
+          "severity": "moderate"
+        }
+      ],
+      "colour": "black",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2016-10-14",
+          "km": 44
+        },
+        {
+          "date": "2017-10-11",
+          "km": 11197
+        },
+        {
+          "date": "2018-09-23",
+          "km": 25565
+        },
+        {
+          "date": "2019-10-08",
+          "km": 39337
+        },
+        {
+          "date": "2020-10-09",
+          "km": 54496
+        },
+        {
+          "date": "2021-09-14",
+          "km": 66614
+        },
+        {
+          "date": "2022-09-09",
+          "km": 77492
+        },
+        {
+          "date": "2023-08-30",
+          "km": 90852
+        },
+        {
+          "date": "2024-09-12",
+          "km": 107700
+        },
+        {
+          "date": "2025-10-02",
+          "km": 123481
+        }
+      ],
+      "model": "Land Cruiser Prado",
+      "model_year": 2016,
+      "owners": [
+        {
+          "from": "2016-10-14",
+          "owner_id": "SYN-OWNER-0001",
+          "to": "2021-02-09"
+        },
+        {
+          "from": "2021-02-09",
+          "owner_id": "SYN-OWNER-0002",
+          "to": "2024-05-30"
+        },
+        {
+          "from": "2024-05-30",
+          "owner_id": "SYN-OWNER-0003",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0AP4JPMXXGF392722"
+    },
+    {
+      "accidents": [],
+      "colour": "blue",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2024-07-25",
+          "km": 14
+        },
+        {
+          "date": "2025-08-02",
+          "km": 19573
+        }
+      ],
+      "model": "e2",
+      "model_year": 2024,
+      "owners": [
+        {
+          "from": "2024-07-25",
+          "owner_id": "SYN-OWNER-0004",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0AP53D8V8RC604575"
+    },
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0002",
+          "date": "2026-06-06",
+          "description": "Moderate rear impact affecting left_tail_light, right_tail_light (synthetic record)",
+          "parts": [
+            "left_tail_light",
+            "right_tail_light"
+          ],
+          "severity": "moderate"
+        }
+      ],
+      "colour": "blue",
+      "insurance_claims": [
+        {
+          "accident_id": "SYN-ACC-0002",
+          "amount_uzs": 2920000,
+          "claim_id": "SYN-CLAIM-0001",
+          "date": "2026-07-02",
+          "insurer": "Sandbox Insurer A",
+          "status": "open"
+        }
+      ],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2021-12-12",
+          "km": 30
+        },
+        {
+          "date": "2023-02-01",
+          "km": 17194
+        },
+        {
+          "date": "2024-01-19",
+          "km": 38704
+        },
+        {
+          "date": "2024-11-22",
+          "km": 56529
+        },
+        {
+          "date": "2025-12-09",
+          "km": 72503
+        }
+      ],
+      "model": "RAV4",
+      "model_year": 2021,
+      "owners": [
+        {
+          "from": "2021-12-12",
+          "owner_id": "SYN-OWNER-0005",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APHH0538MA446978"
+    },
+    {
+      "accidents": [],
+      "colour": "grey",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2023-11-18",
+          "km": 46
+        },
+        {
+          "date": "2024-11-29",
+          "km": 18728
+        },
+        {
+          "date": "2026-01-05",
+          "km": 35933
+        }
+      ],
+      "model": "Song Plus DM-i",
+      "model_year": 2023,
+      "owners": [
+        {
+          "from": "2023-11-18",
+          "owner_id": "SYN-OWNER-0006",
+          "to": "2026-02-19"
+        },
+        {
+          "from": "2026-02-19",
+          "owner_id": "SYN-OWNER-0007",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APS64WS4PR408212"
+    },
+    {
+      "accidents": [],
+      "colour": "red",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2025-04-16",
+          "km": 27
+        },
+        {
+          "date": "2026-02-22",
+          "km": 13401
+        }
+      ],
+      "model": "Land Cruiser 300",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-04-16",
+          "owner_id": "SYN-OWNER-0008",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0AP6DLKY4S3638789"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2024-03-12",
+          "km": 32
+        },
+        {
+          "date": "2025-03-23",
+          "km": 15733
+        },
+        {
+          "date": "2026-04-26",
+          "km": 36476
+        }
+      ],
+      "model": "Song Plus DM-i",
+      "model_year": 2024,
+      "owners": [
+        {
+          "from": "2024-03-12",
+          "owner_id": "SYN-OWNER-0009",
+          "to": "2025-10-09"
+        },
+        {
+          "from": "2025-10-09",
+          "owner_id": "SYN-OWNER-0010",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APN2NZSXRB734862"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2025-06-24",
+          "km": 46
+        },
+        {
+          "date": "2026-07-28",
+          "km": 20999
+        }
+      ],
+      "model": "Land Cruiser Prado",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-06-24",
+          "owner_id": "SYN-OWNER-0011",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0AP6Z3XZ8S9657796"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2022-04-12",
+          "km": 22
+        },
+        {
+          "date": "2023-02-24",
+          "km": 13679
+        },
+        {
+          "date": "2024-03-24",
+          "km": 25160
+        },
+        {
+          "date": "2025-05-19",
+          "km": 38049
+        },
+        {
+          "date": "2026-06-01",
+          "km": 54160
+        }
+      ],
+      "model": "Land Cruiser Prado",
+      "model_year": 2022,
+      "owners": [
+        {
+          "from": "2022-04-12",
+          "owner_id": "SYN-OWNER-0012",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APN4UKH2N2968314"
+    },
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0003",
+          "date": "2020-05-18",
+          "description": "Minor right impact affecting right_mirror (synthetic record)",
+          "parts": [
+            "right_mirror"
+          ],
+          "severity": "minor"
+        },
+        {
+          "accident_id": "SYN-ACC-0004",
+          "date": "2024-02-07",
+          "description": "Minor rear impact affecting trunk (synthetic record)",
+          "parts": [
+            "trunk"
+          ],
+          "severity": "minor"
+        },
+        {
+          "accident_id": "SYN-ACC-0005",
+          "date": "2025-05-04",
+          "description": "Moderate right impact affecting right_front_door, right_mirror (synthetic record)",
+          "parts": [
+            "right_front_door",
+            "right_mirror"
+          ],
+          "severity": "moderate"
+        }
+      ],
+      "colour": "white",
+      "insurance_claims": [
+        {
+          "accident_id": "SYN-ACC-0004",
+          "amount_uzs": 620000,
+          "claim_id": "SYN-CLAIM-0002",
+          "date": "2024-02-27",
+          "insurer": "Sandbox Insurer B",
+          "status": "paid"
+        },
+        {
+          "accident_id": "SYN-ACC-0005",
+          "amount_uzs": 7010000,
+          "claim_id": "SYN-CLAIM-0003",
+          "date": "2025-05-26",
+          "insurer": "Sandbox Insurer C",
+          "status": "paid"
+        }
+      ],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2020-02-18",
+          "km": 20
+        },
+        {
+          "date": "2021-04-04",
+          "km": 26780
+        },
+        {
+          "date": "2022-02-19",
+          "km": 44259
+        },
+        {
+          "date": "2022-12-27",
+          "km": 60986
+        },
+        {
+          "date": "2024-01-26",
+          "km": 86298
+        },
+        {
+          "date": "2025-02-05",
+          "km": 112595
+        },
+        {
+          "date": "2025-12-29",
+          "km": 135466
+        }
+      ],
+      "model": "RAV4",
+      "model_year": 2020,
+      "owners": [
+        {
+          "from": "2020-02-18",
+          "owner_id": "SYN-OWNER-0013",
+          "to": "2022-08-30"
+        },
+        {
+          "from": "2022-08-30",
+          "owner_id": "SYN-OWNER-0014",
+          "to": "2025-04-28"
+        },
+        {
+          "from": "2025-04-28",
+          "owner_id": "SYN-OWNER-0015",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APCA43J1LB010389"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2020-04-02",
+          "km": 40
+        },
+        {
+          "date": "2021-03-09",
+          "km": 13455
+        },
+        {
+          "date": "2022-02-24",
+          "km": 28722
+        },
+        {
+          "date": "2022-12-21",
+          "km": 41561
+        },
+        {
+          "date": "2024-01-27",
+          "km": 58657
+        },
+        {
+          "date": "2025-02-11",
+          "km": 77478
+        },
+        {
+          "date": "2025-12-09",
+          "km": 94409
+        }
+      ],
+      "model": "e2",
+      "model_year": 2020,
+      "owners": [
+        {
+          "from": "2020-04-02",
+          "owner_id": "SYN-OWNER-0016",
+          "to": "2026-04-21"
+        },
+        {
+          "from": "2026-04-21",
+          "owner_id": "SYN-OWNER-0017",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APVDU2X9LD310322"
+    },
+    {
+      "accidents": [],
+      "colour": "grey",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2022-05-14",
+          "km": 45
+        },
+        {
+          "date": "2023-06-10",
+          "km": 28550
+        },
+        {
+          "date": "2024-04-23",
+          "km": 49232
+        },
+        {
+          "date": "2025-04-17",
+          "km": 77123
+        },
+        {
+          "date": "2026-03-21",
+          "km": 97521
+        }
+      ],
+      "model": "Song Plus DM-i",
+      "model_year": 2022,
+      "owners": [
+        {
+          "from": "2022-05-14",
+          "owner_id": "SYN-OWNER-0018",
+          "to": "2023-11-24"
+        },
+        {
+          "from": "2023-11-24",
+          "owner_id": "SYN-OWNER-0019",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APELTCN5NJ690144"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2023-01-09",
+          "km": 17
+        },
+        {
+          "date": "2024-03-05",
+          "km": 24654
+        },
+        {
+          "date": "2025-02-26",
+          "km": 44116
+        },
+        {
+          "date": "2025-12-31",
+          "km": 64350
+        }
+      ],
+      "model": "Land Cruiser 300",
+      "model_year": 2023,
+      "owners": [
+        {
+          "from": "2023-01-09",
+          "owner_id": "SYN-OWNER-0020",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0AP9R1FN7PB551632"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2025-06-09",
+          "km": 44
+        },
+        {
+          "date": "2026-04-07",
+          "km": 7482
+        }
+      ],
+      "model": "Sealion 7",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-06-09",
+          "owner_id": "SYN-OWNER-0021",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APX62GFXSF619467"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2020-09-15",
+          "km": 37
+        },
+        {
+          "date": "2021-10-22",
+          "km": 10866
+        },
+        {
+          "date": "2022-10-29",
+          "km": 19394
+        },
+        {
+          "date": "2023-12-07",
+          "km": 29142
+        },
+        {
+          "date": "2025-01-30",
+          "km": 37560
+        },
+        {
+          "date": "2026-01-23",
+          "km": 45149
+        }
+      ],
+      "model": "RAV4",
+      "model_year": 2020,
+      "owners": [
+        {
+          "from": "2020-09-15",
+          "owner_id": "SYN-OWNER-0022",
+          "to": "2025-01-22"
+        },
+        {
+          "from": "2025-01-22",
+          "owner_id": "SYN-OWNER-0023",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APVVRPC2LC630894"
+    },
+    {
+      "accidents": [],
+      "colour": "silver",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2025-05-23",
+          "km": 18
+        },
+        {
+          "date": "2026-05-21",
+          "km": 16568
+        }
+      ],
+      "model": "Sealion 7",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-05-23",
+          "owner_id": "SYN-OWNER-0024",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APR937D8SW078262"
+    },
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0006",
+          "date": "2017-05-24",
+          "description": "Minor rear impact affecting right_quarter_panel (synthetic record)",
+          "parts": [
+            "right_quarter_panel"
+          ],
+          "severity": "minor"
+        }
+      ],
+      "colour": "silver",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2017-04-13",
+          "km": 22
+        },
+        {
+          "date": "2018-03-01",
+          "km": 10547
+        },
+        {
+          "date": "2019-04-07",
+          "km": 21922
+        },
+        {
+          "date": "2020-04-12",
+          "km": 33870
+        },
+        {
+          "date": "2021-05-27",
+          "km": 46218
+        },
+        {
+          "date": "2022-07-06",
+          "km": 57964
+        },
+        {
+          "date": "2023-06-10",
+          "km": 65767
+        },
+        {
+          "date": "2024-06-22",
+          "km": 77509
+        },
+        {
+          "date": "2025-06-08",
+          "km": 89149
+        },
+        {
+          "date": "2026-05-06",
+          "km": 99795
+        }
+      ],
+      "model": "Camry",
+      "model_year": 2017,
+      "owners": [
+        {
+          "from": "2017-04-13",
+          "owner_id": "SYN-OWNER-0025",
+          "to": "2021-11-27"
+        },
+        {
+          "from": "2021-11-27",
+          "owner_id": "SYN-OWNER-0026",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APN5YPZ3HV478442"
+    },
+    {
+      "accidents": [],
+      "colour": "black",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2025-01-22",
+          "km": 32
+        },
+        {
+          "date": "2026-03-26",
+          "km": 11179
+        }
+      ],
+      "model": "Camry",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-01-22",
+          "owner_id": "SYN-OWNER-0027",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APB9RSL2S0325989"
+    },
+    {
+      "accidents": [],
+      "colour": "silver",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2025-12-25",
+          "km": 15
+        }
+      ],
+      "model": "Sealion 7",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-12-25",
+          "owner_id": "SYN-OWNER-0028",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0AP481LL4S0253706"
+    },
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0007",
+          "date": "2026-04-06",
+          "description": "Moderate front impact affecting front_bumper, left_headlight (synthetic record)",
+          "parts": [
+            "front_bumper",
+            "left_headlight"
+          ],
+          "severity": "moderate"
+        }
+      ],
+      "colour": "white",
+      "insurance_claims": [
+        {
+          "accident_id": "SYN-ACC-0007",
+          "amount_uzs": 6080000,
+          "claim_id": "SYN-CLAIM-0004",
+          "date": "2026-04-26",
+          "insurer": "Sandbox Insurer B",
+          "status": "paid"
+        }
+      ],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2016-11-30",
+          "km": 26
+        },
+        {
+          "date": "2017-12-27",
+          "km": 9518
+        },
+        {
+          "date": "2019-01-02",
+          "km": 18493
+        },
+        {
+          "date": "2020-02-12",
+          "km": 27980
+        },
+        {
+          "date": "2021-02-15",
+          "km": 36576
+        },
+        {
+          "date": "2022-04-16",
+          "km": 45742
+        },
+        {
+          "date": "2023-03-26",
+          "km": 52765
+        },
+        {
+          "date": "2024-04-19",
+          "km": 60356
+        },
+        {
+          "date": "2025-04-12",
+          "km": 68006
+        },
+        {
+          "date": "2026-02-25",
+          "km": 75955
+        }
+      ],
+      "model": "RAV4",
+      "model_year": 2016,
+      "owners": [
+        {
+          "from": "2016-11-30",
+          "owner_id": "SYN-OWNER-0029",
+          "to": "2020-09-14"
+        },
+        {
+          "from": "2020-09-14",
+          "owner_id": "SYN-OWNER-0030",
+          "to": "2023-05-24"
+        },
+        {
+          "from": "2023-05-24",
+          "owner_id": "SYN-OWNER-0031",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APS161D5G1439504"
+    },
+    {
+      "accidents": [],
+      "colour": "red",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2025-08-29",
+          "km": 45
+        }
+      ],
+      "model": "Sealion 7",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-08-29",
+          "owner_id": "SYN-OWNER-0032",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APJTXZV3SL460115"
+    },
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0008",
+          "date": "2017-09-11",
+          "description": "Minor left impact affecting left_quarter_panel (synthetic record)",
+          "parts": [
+            "left_quarter_panel"
+          ],
+          "severity": "minor"
+        },
+        {
+          "accident_id": "SYN-ACC-0009",
+          "date": "2019-06-30",
+          "description": "Minor right impact affecting right_back_door (synthetic record)",
+          "parts": [
+            "right_back_door"
+          ],
+          "severity": "minor"
+        }
+      ],
+      "colour": "black",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2017-08-06",
+          "km": 13
+        },
+        {
+          "date": "2018-06-05",
+          "km": 10670
+        },
+        {
+          "date": "2019-06-29",
+          "km": 24518
+        },
+        {
+          "date": "2020-08-25",
+          "km": 40257
+        },
+        {
+          "date": "2021-07-03",
+          "km": 52414
+        },
+        {
+          "date": "2022-05-01",
+          "km": 62094
+        },
+        {
+          "date": "2023-04-05",
+          "km": 72118
+        },
+        {
+          "date": "2024-05-07",
+          "km": 84231
+        },
+        {
+          "date": "2025-04-01",
+          "km": 95210
+        },
+        {
+          "date": "2026-02-25",
+          "km": 107052
+        }
+      ],
+      "model": "Land Cruiser Prado",
+      "model_year": 2017,
+      "owners": [
+        {
+          "from": "2017-08-06",
+          "owner_id": "SYN-OWNER-0033",
+          "to": "2022-06-26"
+        },
+        {
+          "from": "2022-06-26",
+          "owner_id": "SYN-OWNER-0034",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APCH09C1H7278169"
+    },
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0010",
+          "date": "2023-11-12",
+          "description": "Minor front impact affecting grille (synthetic record)",
+          "parts": [
+            "grille"
+          ],
+          "severity": "minor"
+        }
+      ],
+      "colour": "silver",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2022-11-16",
+          "km": 31
+        },
+        {
+          "date": "2023-10-13",
+          "km": 18372
+        },
+        {
+          "date": "2024-09-25",
+          "km": 35865
+        },
+        {
+          "date": "2025-08-05",
+          "km": 54950
+        },
+        {
+          "date": "2026-06-30",
+          "km": 73790
+        }
+      ],
+      "model": "RAV4",
+      "model_year": 2022,
+      "owners": [
+        {
+          "from": "2022-11-16",
+          "owner_id": "SYN-OWNER-0035",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APEUUDWXN3599725"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2023-12-22",
+          "km": 13
+        },
+        {
+          "date": "2024-11-01",
+          "km": 9921
+        },
+        {
+          "date": "2025-10-09",
+          "km": 22075
+        },
+        {
+          "date": "2026-08-20",
+          "km": 31531
+        }
+      ],
+      "model": "RAV4",
+      "model_year": 2023,
+      "owners": [
+        {
+          "from": "2023-12-22",
+          "owner_id": "SYN-OWNER-0036",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APL2RAM9P6923813"
+    },
+    {
+      "accidents": [],
+      "colour": "grey",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2024-03-13",
+          "km": 16
+        },
+        {
+          "date": "2025-04-20",
+          "km": 8149
+        },
+        {
+          "date": "2026-04-19",
+          "km": 18286
+        }
+      ],
+      "model": "Seagull",
+      "model_year": 2024,
+      "owners": [
+        {
+          "from": "2024-03-13",
+          "owner_id": "SYN-OWNER-0037",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APU692X1RY481196"
+    },
+    {
+      "accidents": [],
+      "colour": "grey",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2025-07-26",
+          "km": 50
+        },
+        {
+          "date": "2026-09-11",
+          "km": 11870
+        }
+      ],
+      "model": "Song Plus DM-i",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-07-26",
+          "owner_id": "SYN-OWNER-0038",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APL5ZEF7SB909413"
+    },
+    {
+      "accidents": [],
+      "colour": "silver",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2022-09-30",
+          "km": 49
+        },
+        {
+          "date": "2023-08-09",
+          "km": 10097
+        },
+        {
+          "date": "2024-08-17",
+          "km": 21433
+        },
+        {
+          "date": "2025-06-24",
+          "km": 34119
+        },
+        {
+          "date": "2026-07-16",
+          "km": 45236
+        }
+      ],
+      "model": "Land Cruiser 300",
+      "model_year": 2022,
+      "owners": [
+        {
+          "from": "2022-09-30",
+          "owner_id": "SYN-OWNER-0039",
+          "to": "2026-03-21"
+        },
+        {
+          "from": "2026-03-21",
+          "owner_id": "SYN-OWNER-0040",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0AP2DNE48NP633269"
+    },
+    {
+      "accidents": [],
+      "colour": "grey",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2024-05-11",
+          "km": 12
+        },
+        {
+          "date": "2025-06-12",
+          "km": 8926
+        },
+        {
+          "date": "2026-07-10",
+          "km": 18871
+        }
+      ],
+      "model": "Seagull",
+      "model_year": 2024,
+      "owners": [
+        {
+          "from": "2024-05-11",
+          "owner_id": "SYN-OWNER-0041",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0AP8DEGN0R6520136"
+    },
+    {
+      "accidents": [],
+      "colour": "red",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2025-07-28",
+          "km": 11
+        },
+        {
+          "date": "2026-08-20",
+          "km": 17664
+        }
+      ],
+      "model": "Land Cruiser 300",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-07-28",
+          "owner_id": "SYN-OWNER-0042",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APM9ANW6SN676911"
+    },
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0011",
+          "date": "2025-03-19",
+          "description": "Severe rear impact affecting back_windshield, left_quarter_panel, right_quarter_panel (synthetic record)",
+          "parts": [
+            "back_windshield",
+            "left_quarter_panel",
+            "right_quarter_panel"
+          ],
+          "severity": "severe"
+        }
+      ],
+      "colour": "black",
+      "insurance_claims": [
+        {
+          "accident_id": "SYN-ACC-0011",
+          "amount_uzs": 24490000,
+          "claim_id": "SYN-CLAIM-0005",
+          "date": "2025-04-16",
+          "insurer": "Sandbox Insurer B",
+          "status": "paid"
+        }
+      ],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2019-08-03",
+          "km": 24
+        },
+        {
+          "date": "2020-06-18",
+          "km": 19976
+        },
+        {
+          "date": "2021-04-16",
+          "km": 34092
+        },
+        {
+          "date": "2022-05-22",
+          "km": 59107
+        },
+        {
+          "date": "2023-03-31",
+          "km": 77808
+        },
+        {
+          "date": "2024-05-25",
+          "km": 100366
+        },
+        {
+          "date": "2025-05-13",
+          "km": 118401
+        },
+        {
+          "date": "2026-05-07",
+          "km": 135808
+        }
+      ],
+      "model": "Land Cruiser Prado",
+      "model_year": 2019,
+      "owners": [
+        {
+          "from": "2019-08-03",
+          "owner_id": "SYN-OWNER-0043",
+          "to": "2024-08-18"
+        },
+        {
+          "from": "2024-08-18",
+          "owner_id": "SYN-OWNER-0044",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APDWA4C2K6457504"
+    },
+    {
+      "accidents": [],
+      "colour": "black",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2025-03-05",
+          "km": 25
+        },
+        {
+          "date": "2026-03-16",
+          "km": 10308
+        }
+      ],
+      "model": "Land Cruiser Prado",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-03-05",
+          "owner_id": "SYN-OWNER-0045",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APREYU99SW359365"
+    },
+    {
+      "accidents": [],
+      "colour": "grey",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2022-04-30",
+          "km": 9
+        },
+        {
+          "date": "2023-04-16",
+          "km": 12506
+        },
+        {
+          "date": "2024-06-09",
+          "km": 28948
+        },
+        {
+          "date": "2025-06-29",
+          "km": 44601
+        },
+        {
+          "date": "2026-06-28",
+          "km": 62558
+        }
+      ],
+      "model": "Land Cruiser Prado",
+      "model_year": 2022,
+      "owners": [
+        {
+          "from": "2022-04-30",
+          "owner_id": "SYN-OWNER-0046",
+          "to": "2026-08-26"
+        },
+        {
+          "from": "2026-08-26",
+          "owner_id": "SYN-OWNER-0047",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APXK17J6ND263352"
+    },
+    {
+      "accidents": [],
+      "colour": "grey",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2016-03-05",
+          "km": 35
+        },
+        {
+          "date": "2017-02-02",
+          "km": 12350
+        },
+        {
+          "date": "2018-02-10",
+          "km": 22837
+        },
+        {
+          "date": "2019-01-21",
+          "km": 34023
+        },
+        {
+          "date": "2020-01-12",
+          "km": 46908
+        },
+        {
+          "date": "2020-11-07",
+          "km": 55470
+        },
+        {
+          "date": "2021-12-31",
+          "km": 66554
+        },
+        {
+          "date": "2022-11-12",
+          "km": 74673
+        },
+        {
+          "date": "2023-12-25",
+          "km": 85955
+        },
+        {
+          "date": "2025-01-24",
+          "km": 99573
+        },
+        {
+          "date": "2025-12-11",
+          "km": 108634
+        }
+      ],
+      "model": "Land Cruiser Prado",
+      "model_year": 2016,
+      "owners": [
+        {
+          "from": "2016-03-05",
+          "owner_id": "SYN-OWNER-0048",
+          "to": "2018-10-18"
+        },
+        {
+          "from": "2018-10-18",
+          "owner_id": "SYN-OWNER-0049",
+          "to": "2023-09-14"
+        },
+        {
+          "from": "2023-09-14",
+          "owner_id": "SYN-OWNER-0050",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APD9XZV0GE122291"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2023-04-27",
+          "km": 7
+        },
+        {
+          "date": "2024-03-23",
+          "km": 18473
+        },
+        {
+          "date": "2025-03-23",
+          "km": 39926
+        },
+        {
+          "date": "2026-02-05",
+          "km": 63532
+        }
+      ],
+      "model": "Song Plus DM-i",
+      "model_year": 2023,
+      "owners": [
+        {
+          "from": "2023-04-27",
+          "owner_id": "SYN-OWNER-0051",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APFGDGB5P9776301"
+    },
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0012",
+          "date": "2026-06-30",
+          "description": "Minor front impact affecting grille (synthetic record)",
+          "parts": [
+            "grille"
+          ],
+          "severity": "minor"
+        }
+      ],
+      "colour": "grey",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2025-12-22",
+          "km": 49
+        }
+      ],
+      "model": "Sealion 7",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-12-22",
+          "owner_id": "SYN-OWNER-0052",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APLS1VY8S1257614"
+    },
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0013",
+          "date": "2025-07-25",
+          "description": "Severe left impact affecting left_fender, left_mirror (synthetic record)",
+          "parts": [
+            "left_fender",
+            "left_mirror"
+          ],
+          "severity": "severe"
+        }
+      ],
+      "colour": "blue",
+      "insurance_claims": [
+        {
+          "accident_id": "SYN-ACC-0013",
+          "amount_uzs": 17320000,
+          "claim_id": "SYN-CLAIM-0006",
+          "date": "2025-08-03",
+          "insurer": "Sandbox Insurer B",
+          "status": "paid"
+        }
+      ],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2022-02-07",
+          "km": 14
+        },
+        {
+          "date": "2023-01-20",
+          "km": 20648
+        },
+        {
+          "date": "2024-03-25",
+          "km": 45397
+        },
+        {
+          "date": "2025-04-15",
+          "km": 70038
+        },
+        {
+          "date": "2026-03-23",
+          "km": 92106
+        }
+      ],
+      "model": "RAV4",
+      "model_year": 2022,
+      "owners": [
+        {
+          "from": "2022-02-07",
+          "owner_id": "SYN-OWNER-0053",
+          "to": "2023-08-11"
+        },
+        {
+          "from": "2023-08-11",
+          "owner_id": "SYN-OWNER-0054",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0AP7FXAU4NR841123"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2025-08-08",
+          "km": 23
+        },
+        {
+          "date": "2026-08-09",
+          "km": 25017
+        }
+      ],
+      "model": "Land Cruiser Prado",
+      "model_year": 2025,
+      "owners": [
+        {
+          "from": "2025-08-08",
+          "owner_id": "SYN-OWNER-0055",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APLTEKM0SS680641"
+    },
+    {
+      "accidents": [],
+      "colour": "black",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2021-09-24",
+          "km": 47
+        },
+        {
+          "date": "2022-08-04",
+          "km": 19517
+        },
+        {
+          "date": "2023-07-17",
+          "km": 37397
+        },
+        {
+          "date": "2024-06-07",
+          "km": 53164
+        },
+        {
+          "date": "2025-05-07",
+          "km": 71297
+        },
+        {
+          "date": "2026-07-08",
+          "km": 92538
+        }
+      ],
+      "model": "Land Cruiser Prado",
+      "model_year": 2021,
+      "owners": [
+        {
+          "from": "2021-09-24",
+          "owner_id": "SYN-OWNER-0056",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APGS8AP9MA853423"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2022-09-13",
+          "km": 46
+        },
+        {
+          "date": "2023-09-10",
+          "km": 20900
+        },
+        {
+          "date": "2024-10-26",
+          "km": 40523
+        },
+        {
+          "date": "2025-12-02",
+          "km": 60356
+        }
+      ],
+      "model": "RAV4",
+      "model_year": 2022,
+      "owners": [
+        {
+          "from": "2022-09-13",
+          "owner_id": "SYN-OWNER-0057",
+          "to": "2025-06-20"
+        },
+        {
+          "from": "2025-06-20",
+          "owner_id": "SYN-OWNER-0058",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APWUUSL9NG463236"
+    },
+    {
+      "accidents": [
+        {
+          "accident_id": "SYN-ACC-0014",
+          "date": "2016-11-10",
+          "description": "Severe front impact affecting grille, right_fender (synthetic record)",
+          "parts": [
+            "grille",
+            "right_fender"
+          ],
+          "severity": "severe"
+        },
+        {
+          "accident_id": "SYN-ACC-0015",
+          "date": "2020-02-19",
+          "description": "Minor front impact affecting right_headlight (synthetic record)",
+          "parts": [
+            "right_headlight"
+          ],
+          "severity": "minor"
+        }
+      ],
+      "colour": "green",
+      "insurance_claims": [
+        {
+          "accident_id": "SYN-ACC-0014",
+          "amount_uzs": 18890000,
+          "claim_id": "SYN-CLAIM-0007",
+          "date": "2016-12-09",
+          "insurer": "Sandbox Insurer A",
+          "status": "paid"
+        }
+      ],
+      "make": "Toyota",
+      "mileage_km": [
+        {
+          "date": "2016-05-02",
+          "km": 44
+        },
+        {
+          "date": "2017-03-15",
+          "km": 22310
+        },
+        {
+          "date": "2018-04-29",
+          "km": 43698
+        },
+        {
+          "date": "2019-04-27",
+          "km": 66370
+        },
+        {
+          "date": "2020-06-22",
+          "km": 92660
+        },
+        {
+          "date": "2021-08-12",
+          "km": 115716
+        },
+        {
+          "date": "2022-08-18",
+          "km": 135845
+        },
+        {
+          "date": "2023-08-16",
+          "km": 159301
+        },
+        {
+          "date": "2024-07-11",
+          "km": 181151
+        },
+        {
+          "date": "2025-07-22",
+          "km": 203136
+        },
+        {
+          "date": "2026-06-25",
+          "km": 221010
+        }
+      ],
+      "model": "Camry",
+      "model_year": 2016,
+      "owners": [
+        {
+          "from": "2016-05-02",
+          "owner_id": "SYN-OWNER-0059",
+          "to": "2020-05-19"
+        },
+        {
+          "from": "2020-05-19",
+          "owner_id": "SYN-OWNER-0060",
+          "to": "2025-03-29"
+        },
+        {
+          "from": "2025-03-29",
+          "owner_id": "SYN-OWNER-0061",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APKX0B19G8717862"
+    },
+    {
+      "accidents": [],
+      "colour": "white",
+      "insurance_claims": [],
+      "make": "BYD",
+      "mileage_km": [
+        {
+          "date": "2022-01-02",
+          "km": 32
+        },
+        {
+          "date": "2022-12-03",
+          "km": 14121
+        },
+        {
+          "date": "2024-01-01",
+          "km": 30279
+        },
+        {
+          "date": "2025-01-17",
+          "km": 49426
+        },
+        {
+          "date": "2026-03-07",
+          "km": 66165
+        }
+      ],
+      "model": "Song Plus DM-i",
+      "model_year": 2022,
+      "owners": [
+        {
+          "from": "2022-01-02",
+          "owner_id": "SYN-OWNER-0062",
+          "to": null
+        }
+      ],
+      "source": "registry connector - sandbox",
+      "synthetic": true,
+      "vin": "0APS492P1N8519369"
+    }
+  ],
+  "seed": 20261010,
+  "source": "registry connector - sandbox",
+  "synthetic": true
+}

@@ -1,0 +1,1094 @@
+{
+  "badge": "SYNTHETIC DEMO DATA",
+  "generator": "scripts/generate_synthetic.py",
+  "notice": "Generated sandbox data: not real registry, police, insurer or dealer records. Show the SYNTHETIC DEMO DATA badge wherever it is used and never attach it to a scanned VIN. Method: data/synthetic/README.md.",
+  "records": [
+    {
+      "customer_id": "SYN-CUST-0001",
+      "display_name": "Synthetic Customer 001",
+      "district": "Yunusabad",
+      "email": "cust001@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 1620000,
+          "date": "2024-01-25",
+          "type": "accessories",
+          "vin": "0APELTCN5NJ690144",
+          "visit_id": "SYN-VISIT-0001"
+        },
+        {
+          "amount_uzs": 10470000,
+          "date": "2024-08-07",
+          "type": "body_repair",
+          "vin": "0APELTCN5NJ690144",
+          "visit_id": "SYN-VISIT-0002"
+        },
+        {
+          "amount_uzs": 670000,
+          "date": "2024-10-26",
+          "type": "maintenance",
+          "vin": "0APELTCN5NJ690144",
+          "visit_id": "SYN-VISIT-0003"
+        },
+        {
+          "amount_uzs": 870000,
+          "date": "2026-02-05",
+          "type": "maintenance",
+          "vin": "0APELTCN5NJ690144",
+          "visit_id": "SYN-VISIT-0004"
+        },
+        {
+          "amount_uzs": 2560000,
+          "date": "2026-02-22",
+          "type": "maintenance",
+          "vin": "0APELTCN5NJ690144",
+          "visit_id": "SYN-VISIT-0005"
+        },
+        {
+          "amount_uzs": 2820000,
+          "date": "2026-07-10",
+          "type": "maintenance",
+          "vin": "0APELTCN5NJ690144",
+          "visit_id": "SYN-VISIT-0006"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APELTCN5NJ690144"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0002",
+      "display_name": "Synthetic Customer 002",
+      "district": "Chilanzar",
+      "email": "cust002@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 790000,
+          "date": "2025-09-20",
+          "type": "maintenance",
+          "vin": "0APX62GFXSF619467",
+          "visit_id": "SYN-VISIT-0007"
+        },
+        {
+          "amount_uzs": 1460000,
+          "date": "2026-04-28",
+          "type": "maintenance",
+          "vin": "0APX62GFXSF619467",
+          "visit_id": "SYN-VISIT-0008"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APX62GFXSF619467"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0003",
+      "display_name": "Synthetic Customer 003",
+      "district": "Mirzo Ulugbek",
+      "email": "cust003@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 750000,
+          "date": "2025-09-13",
+          "type": "maintenance",
+          "vin": "0AP6Z3XZ8S9657796",
+          "visit_id": "SYN-VISIT-0009"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0AP6Z3XZ8S9657796"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0004",
+      "display_name": "Synthetic Customer 004",
+      "district": "Sergeli",
+      "email": "cust004@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 2200000,
+          "date": "2025-09-24",
+          "type": "maintenance",
+          "vin": "0APWUUSL9NG463236",
+          "visit_id": "SYN-VISIT-0010"
+        },
+        {
+          "amount_uzs": 2220000,
+          "date": "2025-11-01",
+          "type": "maintenance",
+          "vin": "0APWUUSL9NG463236",
+          "visit_id": "SYN-VISIT-0011"
+        },
+        {
+          "amount_uzs": 800000,
+          "date": "2026-03-28",
+          "type": "maintenance",
+          "vin": "0APWUUSL9NG463236",
+          "visit_id": "SYN-VISIT-0012"
+        },
+        {
+          "amount_uzs": 3160000,
+          "date": "2026-05-12",
+          "type": "body_repair",
+          "vin": "0APWUUSL9NG463236",
+          "visit_id": "SYN-VISIT-0013"
+        },
+        {
+          "amount_uzs": 7330000,
+          "date": "2026-08-09",
+          "type": "accessories",
+          "vin": "0APVDU2X9LD310322",
+          "visit_id": "SYN-VISIT-0014"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APVDU2X9LD310322",
+        "0APWUUSL9NG463236"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0005",
+      "display_name": "Synthetic Customer 005",
+      "district": "Tashkent region (synthetic)",
+      "email": "cust005@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 1730000,
+          "date": "2023-06-07",
+          "type": "maintenance",
+          "vin": "0AP9R1FN7PB551632",
+          "visit_id": "SYN-VISIT-0015"
+        },
+        {
+          "amount_uzs": 1020000,
+          "date": "2023-09-08",
+          "type": "maintenance",
+          "vin": "0AP9R1FN7PB551632",
+          "visit_id": "SYN-VISIT-0016"
+        },
+        {
+          "amount_uzs": 2320000,
+          "date": "2023-12-27",
+          "type": "maintenance",
+          "vin": "0AP9R1FN7PB551632",
+          "visit_id": "SYN-VISIT-0017"
+        },
+        {
+          "amount_uzs": 2840000,
+          "date": "2024-12-22",
+          "type": "body_repair",
+          "vin": "0AP9R1FN7PB551632",
+          "visit_id": "SYN-VISIT-0018"
+        },
+        {
+          "amount_uzs": 1290000,
+          "date": "2025-06-08",
+          "type": "maintenance",
+          "vin": "0AP9R1FN7PB551632",
+          "visit_id": "SYN-VISIT-0019"
+        },
+        {
+          "amount_uzs": 5860000,
+          "date": "2026-03-30",
+          "type": "body_repair",
+          "vin": "0AP9R1FN7PB551632",
+          "visit_id": "SYN-VISIT-0020"
+        },
+        {
+          "amount_uzs": 2630000,
+          "date": "2026-08-22",
+          "type": "maintenance",
+          "vin": "0AP9R1FN7PB551632",
+          "visit_id": "SYN-VISIT-0021"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0AP9R1FN7PB551632"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0006",
+      "display_name": "Synthetic Customer 006",
+      "district": "Tashkent region (synthetic)",
+      "email": "cust006@example.invalid",
+      "service_visits": [],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APS64WS4PR408212"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0007",
+      "display_name": "Synthetic Customer 007",
+      "district": "Tashkent region (synthetic)",
+      "email": "cust007@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 1300000,
+          "date": "2025-09-17",
+          "type": "maintenance",
+          "vin": "0APLTEKM0SS680641",
+          "visit_id": "SYN-VISIT-0022"
+        },
+        {
+          "amount_uzs": 0,
+          "date": "2026-06-12",
+          "type": "warranty",
+          "vin": "0APLTEKM0SS680641",
+          "visit_id": "SYN-VISIT-0023"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APLTEKM0SS680641"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0008",
+      "display_name": "Synthetic Customer 008",
+      "district": "Olmazor",
+      "email": "cust008@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 1640000,
+          "date": "2024-08-22",
+          "type": "maintenance",
+          "vin": "0AP4JPMXXGF392722",
+          "visit_id": "SYN-VISIT-0024"
+        },
+        {
+          "amount_uzs": 1050000,
+          "date": "2024-09-02",
+          "type": "body_repair",
+          "vin": "0AP4JPMXXGF392722",
+          "visit_id": "SYN-VISIT-0025"
+        },
+        {
+          "amount_uzs": 750000,
+          "date": "2025-01-16",
+          "type": "maintenance",
+          "vin": "0AP4JPMXXGF392722",
+          "visit_id": "SYN-VISIT-0026"
+        },
+        {
+          "amount_uzs": 1030000,
+          "date": "2026-02-27",
+          "type": "maintenance",
+          "vin": "0AP4JPMXXGF392722",
+          "visit_id": "SYN-VISIT-0027"
+        },
+        {
+          "amount_uzs": 1720000,
+          "date": "2026-05-07",
+          "type": "maintenance",
+          "vin": "0AP6DLKY4S3638789",
+          "visit_id": "SYN-VISIT-0028"
+        },
+        {
+          "amount_uzs": 980000,
+          "date": "2026-09-15",
+          "type": "maintenance",
+          "vin": "0AP4JPMXXGF392722",
+          "visit_id": "SYN-VISIT-0029"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0AP4JPMXXGF392722",
+        "0AP6DLKY4S3638789"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0009",
+      "display_name": "Synthetic Customer 009",
+      "district": "Sergeli",
+      "email": "cust009@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 0,
+          "date": "2026-04-27",
+          "type": "warranty",
+          "vin": "0APL5ZEF7SB909413",
+          "visit_id": "SYN-VISIT-0030"
+        },
+        {
+          "amount_uzs": 2360000,
+          "date": "2026-08-25",
+          "type": "maintenance",
+          "vin": "0APL5ZEF7SB909413",
+          "visit_id": "SYN-VISIT-0031"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APL5ZEF7SB909413"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0010",
+      "display_name": "Synthetic Customer 010",
+      "district": "Bektemir",
+      "email": "cust010@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 1600000,
+          "date": "2022-05-15",
+          "type": "maintenance",
+          "vin": "0APN5YPZ3HV478442",
+          "visit_id": "SYN-VISIT-0032"
+        },
+        {
+          "amount_uzs": 2210000,
+          "date": "2022-09-22",
+          "type": "maintenance",
+          "vin": "0APN5YPZ3HV478442",
+          "visit_id": "SYN-VISIT-0033"
+        },
+        {
+          "amount_uzs": 950000,
+          "date": "2023-03-15",
+          "type": "accessories",
+          "vin": "0APN5YPZ3HV478442",
+          "visit_id": "SYN-VISIT-0034"
+        },
+        {
+          "amount_uzs": 1130000,
+          "date": "2023-12-29",
+          "type": "maintenance",
+          "vin": "0APN5YPZ3HV478442",
+          "visit_id": "SYN-VISIT-0035"
+        },
+        {
+          "amount_uzs": 2450000,
+          "date": "2024-06-30",
+          "type": "maintenance",
+          "vin": "0APN5YPZ3HV478442",
+          "visit_id": "SYN-VISIT-0036"
+        },
+        {
+          "amount_uzs": 2790000,
+          "date": "2025-05-12",
+          "type": "maintenance",
+          "vin": "0APN5YPZ3HV478442",
+          "visit_id": "SYN-VISIT-0037"
+        },
+        {
+          "amount_uzs": 1020000,
+          "date": "2025-06-10",
+          "type": "maintenance",
+          "vin": "0APEUUDWXN3599725",
+          "visit_id": "SYN-VISIT-0038"
+        },
+        {
+          "amount_uzs": 1950000,
+          "date": "2025-09-10",
+          "type": "maintenance",
+          "vin": "0APEUUDWXN3599725",
+          "visit_id": "SYN-VISIT-0039"
+        },
+        {
+          "amount_uzs": 700000,
+          "date": "2026-03-22",
+          "type": "maintenance",
+          "vin": "0APEUUDWXN3599725",
+          "visit_id": "SYN-VISIT-0040"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APEUUDWXN3599725",
+        "0APN5YPZ3HV478442"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0011",
+      "display_name": "Synthetic Customer 011",
+      "district": "Uchtepa",
+      "email": "cust011@example.invalid",
+      "service_visits": [],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APVVRPC2LC630894"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0012",
+      "display_name": "Synthetic Customer 012",
+      "district": "Shayxontoxur",
+      "email": "cust012@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 1950000,
+          "date": "2021-12-14",
+          "type": "maintenance",
+          "vin": "0APHH0538MA446978",
+          "visit_id": "SYN-VISIT-0041"
+        },
+        {
+          "amount_uzs": 1460000,
+          "date": "2022-07-11",
+          "type": "maintenance",
+          "vin": "0APHH0538MA446978",
+          "visit_id": "SYN-VISIT-0042"
+        },
+        {
+          "amount_uzs": 0,
+          "date": "2022-09-05",
+          "type": "warranty",
+          "vin": "0APHH0538MA446978",
+          "visit_id": "SYN-VISIT-0043"
+        },
+        {
+          "amount_uzs": 710000,
+          "date": "2022-09-28",
+          "type": "maintenance",
+          "vin": "0APHH0538MA446978",
+          "visit_id": "SYN-VISIT-0044"
+        },
+        {
+          "amount_uzs": 2350000,
+          "date": "2023-06-05",
+          "type": "maintenance",
+          "vin": "0APHH0538MA446978",
+          "visit_id": "SYN-VISIT-0045"
+        },
+        {
+          "amount_uzs": 2540000,
+          "date": "2023-07-31",
+          "type": "maintenance",
+          "vin": "0APHH0538MA446978",
+          "visit_id": "SYN-VISIT-0046"
+        },
+        {
+          "amount_uzs": 2100000,
+          "date": "2023-12-29",
+          "type": "maintenance",
+          "vin": "0APHH0538MA446978",
+          "visit_id": "SYN-VISIT-0047"
+        },
+        {
+          "amount_uzs": 2130000,
+          "date": "2024-06-03",
+          "type": "accessories",
+          "vin": "0APHH0538MA446978",
+          "visit_id": "SYN-VISIT-0048"
+        },
+        {
+          "amount_uzs": 940000,
+          "date": "2025-07-07",
+          "type": "maintenance",
+          "vin": "0APHH0538MA446978",
+          "visit_id": "SYN-VISIT-0049"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APHH0538MA446978"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0013",
+      "display_name": "Synthetic Customer 013",
+      "district": "Shayxontoxur",
+      "email": "cust013@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 2110000,
+          "date": "2022-04-27",
+          "type": "maintenance",
+          "vin": "0APS492P1N8519369",
+          "visit_id": "SYN-VISIT-0050"
+        },
+        {
+          "amount_uzs": 0,
+          "date": "2023-12-03",
+          "type": "warranty",
+          "vin": "0APS492P1N8519369",
+          "visit_id": "SYN-VISIT-0051"
+        },
+        {
+          "amount_uzs": 1730000,
+          "date": "2024-10-22",
+          "type": "maintenance",
+          "vin": "0APS492P1N8519369",
+          "visit_id": "SYN-VISIT-0052"
+        },
+        {
+          "amount_uzs": 1870000,
+          "date": "2025-10-13",
+          "type": "maintenance",
+          "vin": "0APS492P1N8519369",
+          "visit_id": "SYN-VISIT-0053"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APS492P1N8519369"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0014",
+      "display_name": "Synthetic Customer 014",
+      "district": "Sergeli",
+      "email": "cust014@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 1950000,
+          "date": "2025-09-27",
+          "type": "maintenance",
+          "vin": "0APR937D8SW078262",
+          "visit_id": "SYN-VISIT-0054"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APR937D8SW078262"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0015",
+      "display_name": "Synthetic Customer 015",
+      "district": "Yakkasaray",
+      "email": "cust015@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 2080000,
+          "date": "2026-04-18",
+          "type": "maintenance",
+          "vin": "0APLS1VY8S1257614",
+          "visit_id": "SYN-VISIT-0055"
+        },
+        {
+          "amount_uzs": 2240000,
+          "date": "2026-06-08",
+          "type": "maintenance",
+          "vin": "0APLS1VY8S1257614",
+          "visit_id": "SYN-VISIT-0056"
+        },
+        {
+          "amount_uzs": 5970000,
+          "date": "2026-06-25",
+          "type": "accessories",
+          "vin": "0APLS1VY8S1257614",
+          "visit_id": "SYN-VISIT-0057"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APLS1VY8S1257614"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0016",
+      "display_name": "Synthetic Customer 016",
+      "district": "Chilanzar",
+      "email": "cust016@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 0,
+          "date": "2025-07-22",
+          "type": "warranty",
+          "vin": "0AP8DEGN0R6520136",
+          "visit_id": "SYN-VISIT-0058"
+        },
+        {
+          "amount_uzs": 790000,
+          "date": "2025-08-15",
+          "type": "maintenance",
+          "vin": "0AP8DEGN0R6520136",
+          "visit_id": "SYN-VISIT-0059"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0AP8DEGN0R6520136"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0017",
+      "display_name": "Synthetic Customer 017",
+      "district": "Uchtepa",
+      "email": "cust017@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 0,
+          "date": "2022-01-23",
+          "type": "warranty",
+          "vin": "0APGS8AP9MA853423",
+          "visit_id": "SYN-VISIT-0060"
+        },
+        {
+          "amount_uzs": 2560000,
+          "date": "2022-12-05",
+          "type": "accessories",
+          "vin": "0APGS8AP9MA853423",
+          "visit_id": "SYN-VISIT-0061"
+        },
+        {
+          "amount_uzs": 4020000,
+          "date": "2023-02-11",
+          "type": "accessories",
+          "vin": "0APGS8AP9MA853423",
+          "visit_id": "SYN-VISIT-0062"
+        },
+        {
+          "amount_uzs": 2180000,
+          "date": "2024-09-25",
+          "type": "maintenance",
+          "vin": "0APGS8AP9MA853423",
+          "visit_id": "SYN-VISIT-0063"
+        },
+        {
+          "amount_uzs": 2880000,
+          "date": "2024-12-06",
+          "type": "maintenance",
+          "vin": "0APGS8AP9MA853423",
+          "visit_id": "SYN-VISIT-0064"
+        },
+        {
+          "amount_uzs": 1420000,
+          "date": "2025-09-25",
+          "type": "maintenance",
+          "vin": "0APGS8AP9MA853423",
+          "visit_id": "SYN-VISIT-0065"
+        },
+        {
+          "amount_uzs": 1200000,
+          "date": "2026-06-09",
+          "type": "maintenance",
+          "vin": "0APGS8AP9MA853423",
+          "visit_id": "SYN-VISIT-0066"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APGS8AP9MA853423"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0018",
+      "display_name": "Synthetic Customer 018",
+      "district": "Tashkent region (synthetic)",
+      "email": "cust018@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 2350000,
+          "date": "2022-07-01",
+          "type": "maintenance",
+          "vin": "0APN4UKH2N2968314",
+          "visit_id": "SYN-VISIT-0067"
+        },
+        {
+          "amount_uzs": 2210000,
+          "date": "2023-02-25",
+          "type": "maintenance",
+          "vin": "0APN4UKH2N2968314",
+          "visit_id": "SYN-VISIT-0068"
+        },
+        {
+          "amount_uzs": 0,
+          "date": "2023-09-15",
+          "type": "warranty",
+          "vin": "0APN4UKH2N2968314",
+          "visit_id": "SYN-VISIT-0069"
+        },
+        {
+          "amount_uzs": 2800000,
+          "date": "2024-09-30",
+          "type": "maintenance",
+          "vin": "0APN4UKH2N2968314",
+          "visit_id": "SYN-VISIT-0070"
+        },
+        {
+          "amount_uzs": 2980000,
+          "date": "2024-10-28",
+          "type": "maintenance",
+          "vin": "0APN4UKH2N2968314",
+          "visit_id": "SYN-VISIT-0071"
+        },
+        {
+          "amount_uzs": 2550000,
+          "date": "2025-01-06",
+          "type": "body_repair",
+          "vin": "0APN4UKH2N2968314",
+          "visit_id": "SYN-VISIT-0072"
+        },
+        {
+          "amount_uzs": 2730000,
+          "date": "2025-02-28",
+          "type": "maintenance",
+          "vin": "0APN4UKH2N2968314",
+          "visit_id": "SYN-VISIT-0073"
+        },
+        {
+          "amount_uzs": 1520000,
+          "date": "2025-08-06",
+          "type": "accessories",
+          "vin": "0APN4UKH2N2968314",
+          "visit_id": "SYN-VISIT-0074"
+        },
+        {
+          "amount_uzs": 1620000,
+          "date": "2025-11-17",
+          "type": "maintenance",
+          "vin": "0APN4UKH2N2968314",
+          "visit_id": "SYN-VISIT-0075"
+        },
+        {
+          "amount_uzs": 810000,
+          "date": "2026-06-04",
+          "type": "maintenance",
+          "vin": "0APN4UKH2N2968314",
+          "visit_id": "SYN-VISIT-0076"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APN4UKH2N2968314"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0019",
+      "display_name": "Synthetic Customer 019",
+      "district": "Tashkent region (synthetic)",
+      "email": "cust019@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 1430000,
+          "date": "2023-07-12",
+          "type": "maintenance",
+          "vin": "0APFGDGB5P9776301",
+          "visit_id": "SYN-VISIT-0077"
+        },
+        {
+          "amount_uzs": 12400000,
+          "date": "2024-05-27",
+          "type": "body_repair",
+          "vin": "0APFGDGB5P9776301",
+          "visit_id": "SYN-VISIT-0078"
+        },
+        {
+          "amount_uzs": 6840000,
+          "date": "2024-07-18",
+          "type": "accessories",
+          "vin": "0APS161D5G1439504",
+          "visit_id": "SYN-VISIT-0079"
+        },
+        {
+          "amount_uzs": 760000,
+          "date": "2024-10-08",
+          "type": "maintenance",
+          "vin": "0APFGDGB5P9776301",
+          "visit_id": "SYN-VISIT-0080"
+        },
+        {
+          "amount_uzs": 4580000,
+          "date": "2024-12-09",
+          "type": "accessories",
+          "vin": "0APS161D5G1439504",
+          "visit_id": "SYN-VISIT-0081"
+        },
+        {
+          "amount_uzs": 9040000,
+          "date": "2025-03-29",
+          "type": "body_repair",
+          "vin": "0APS161D5G1439504",
+          "visit_id": "SYN-VISIT-0082"
+        },
+        {
+          "amount_uzs": 10320000,
+          "date": "2025-04-07",
+          "type": "body_repair",
+          "vin": "0APFGDGB5P9776301",
+          "visit_id": "SYN-VISIT-0083"
+        },
+        {
+          "amount_uzs": 6910000,
+          "date": "2025-05-27",
+          "type": "accessories",
+          "vin": "0APS161D5G1439504",
+          "visit_id": "SYN-VISIT-0084"
+        },
+        {
+          "amount_uzs": 2830000,
+          "date": "2025-07-30",
+          "type": "maintenance",
+          "vin": "0APS161D5G1439504",
+          "visit_id": "SYN-VISIT-0085"
+        },
+        {
+          "amount_uzs": 3400000,
+          "date": "2025-11-11",
+          "type": "accessories",
+          "vin": "0APS161D5G1439504",
+          "visit_id": "SYN-VISIT-0086"
+        },
+        {
+          "amount_uzs": 2870000,
+          "date": "2026-01-11",
+          "type": "maintenance",
+          "vin": "0APFGDGB5P9776301",
+          "visit_id": "SYN-VISIT-0087"
+        },
+        {
+          "amount_uzs": 1400000,
+          "date": "2026-07-28",
+          "type": "maintenance",
+          "vin": "0APFGDGB5P9776301",
+          "visit_id": "SYN-VISIT-0088"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APFGDGB5P9776301",
+        "0APS161D5G1439504"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0020",
+      "display_name": "Synthetic Customer 020",
+      "district": "Olmazor",
+      "email": "cust020@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 960000,
+          "date": "2025-03-25",
+          "type": "maintenance",
+          "vin": "0APB9RSL2S0325989",
+          "visit_id": "SYN-VISIT-0089"
+        },
+        {
+          "amount_uzs": 1820000,
+          "date": "2026-01-10",
+          "type": "maintenance",
+          "vin": "0APB9RSL2S0325989",
+          "visit_id": "SYN-VISIT-0090"
+        },
+        {
+          "amount_uzs": 1720000,
+          "date": "2026-03-15",
+          "type": "maintenance",
+          "vin": "0APB9RSL2S0325989",
+          "visit_id": "SYN-VISIT-0091"
+        },
+        {
+          "amount_uzs": 7170000,
+          "date": "2026-06-14",
+          "type": "body_repair",
+          "vin": "0APB9RSL2S0325989",
+          "visit_id": "SYN-VISIT-0092"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APB9RSL2S0325989"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0021",
+      "display_name": "Synthetic Customer 021",
+      "district": "Yangihayot",
+      "email": "cust021@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 1760000,
+          "date": "2025-06-03",
+          "type": "maintenance",
+          "vin": "0APKX0B19G8717862",
+          "visit_id": "SYN-VISIT-0093"
+        },
+        {
+          "amount_uzs": 1160000,
+          "date": "2026-07-06",
+          "type": "accessories",
+          "vin": "0APN2NZSXRB734862",
+          "visit_id": "SYN-VISIT-0094"
+        },
+        {
+          "amount_uzs": 1750000,
+          "date": "2026-08-25",
+          "type": "maintenance",
+          "vin": "0APN2NZSXRB734862",
+          "visit_id": "SYN-VISIT-0095"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APKX0B19G8717862",
+        "0APN2NZSXRB734862"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0022",
+      "display_name": "Synthetic Customer 022",
+      "district": "Uchtepa",
+      "email": "cust022@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 720000,
+          "date": "2025-06-15",
+          "type": "maintenance",
+          "vin": "0APREYU99SW359365",
+          "visit_id": "SYN-VISIT-0096"
+        },
+        {
+          "amount_uzs": 980000,
+          "date": "2026-01-23",
+          "type": "maintenance",
+          "vin": "0APREYU99SW359365",
+          "visit_id": "SYN-VISIT-0097"
+        },
+        {
+          "amount_uzs": 2860000,
+          "date": "2026-02-16",
+          "type": "maintenance",
+          "vin": "0APREYU99SW359365",
+          "visit_id": "SYN-VISIT-0098"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APREYU99SW359365"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0023",
+      "display_name": "Synthetic Customer 023",
+      "district": "Yashnobod",
+      "email": "cust023@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 2230000,
+          "date": "2025-04-20",
+          "type": "maintenance",
+          "vin": "0AP7FXAU4NR841123",
+          "visit_id": "SYN-VISIT-0099"
+        },
+        {
+          "amount_uzs": 14040000,
+          "date": "2025-06-21",
+          "type": "body_repair",
+          "vin": "0AP7FXAU4NR841123",
+          "visit_id": "SYN-VISIT-0100"
+        },
+        {
+          "amount_uzs": 12710000,
+          "date": "2026-08-23",
+          "type": "body_repair",
+          "vin": "0AP7FXAU4NR841123",
+          "visit_id": "SYN-VISIT-0101"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0AP7FXAU4NR841123"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0024",
+      "display_name": "Synthetic Customer 024",
+      "district": "Olmazor",
+      "email": "cust024@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 860000,
+          "date": "2025-05-23",
+          "type": "maintenance",
+          "vin": "0APCA43J1LB010389",
+          "visit_id": "SYN-VISIT-0102"
+        },
+        {
+          "amount_uzs": 2110000,
+          "date": "2025-09-24",
+          "type": "maintenance",
+          "vin": "0APCA43J1LB010389",
+          "visit_id": "SYN-VISIT-0103"
+        },
+        {
+          "amount_uzs": 1360000,
+          "date": "2025-12-12",
+          "type": "maintenance",
+          "vin": "0APCA43J1LB010389",
+          "visit_id": "SYN-VISIT-0104"
+        },
+        {
+          "amount_uzs": 690000,
+          "date": "2026-01-24",
+          "type": "maintenance",
+          "vin": "0APCA43J1LB010389",
+          "visit_id": "SYN-VISIT-0105"
+        },
+        {
+          "amount_uzs": 2330000,
+          "date": "2026-07-11",
+          "type": "maintenance",
+          "vin": "0APCA43J1LB010389",
+          "visit_id": "SYN-VISIT-0106"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APCA43J1LB010389"
+      ]
+    },
+    {
+      "customer_id": "SYN-CUST-0025",
+      "display_name": "Synthetic Customer 025",
+      "district": "Sergeli",
+      "email": "cust025@example.invalid",
+      "service_visits": [
+        {
+          "amount_uzs": 2280000,
+          "date": "2026-07-10",
+          "type": "body_repair",
+          "vin": "0APJTXZV3SL460115",
+          "visit_id": "SYN-VISIT-0107"
+        },
+        {
+          "amount_uzs": 2120000,
+          "date": "2026-09-21",
+          "type": "maintenance",
+          "vin": "0APJTXZV3SL460115",
+          "visit_id": "SYN-VISIT-0108"
+        }
+      ],
+      "source": "dealer CRM - sandbox",
+      "synthetic": true,
+      "vins": [
+        "0APJTXZV3SL460115"
+      ]
+    }
+  ],
+  "seed": 20261010,
+  "source": "dealer CRM - sandbox",
+  "synthetic": true
+}
