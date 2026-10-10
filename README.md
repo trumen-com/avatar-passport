@@ -3,15 +3,16 @@
 AvtoPassport turns a phone walkaround video of a car, plus a photo of its VIN plate, into a digital condition passport tied to the VIN. The passport holds a decoded VIN card, a damage list by car part with repair action and cost, and a comparison with earlier inspections of the same car.
 It is a hackathon prototype for dealer after-sales: vehicle intake and trade-in inspection. The project brief is [CLAUDE.md](CLAUDE.md).
 
-## Status (Run 1, 2026-10-10/11)
+## Status (2026-10-11, overnight build)
 
 | Phase | Status | Where |
 |---|---|---|
-| Phase 0: research | Done | `docs/research/phase0_findings_*.md` (frozen), `model_candidates.md`, `vin_decoding.md`, `market_prices.md` |
-| Phase 1: smoke test | In progress | See below |
-| Phase 2: test-set evaluation | Not started | |
-| Phase 3: pipeline package | Partly started in Run 1 | `src/avtopassport/vin/`, `src/avtopassport/pipeline/` (frames, quality, privacy) |
-| Phase 4: app and public deployment | Not started | |
+| Phase 0: research | Done | `docs/research/phase0_findings_*.md` (frozen), `model_candidates.md`, `vin_decoding.md`, `market_prices.md`, `recon3d_candidates.md` |
+| Phase 1: smoke test | Done locally (GPU + CPU runs); Colab run by the team still to do | `docs/research/smoke_test_results.md` |
+| Phase 2: test-set evaluation | Tooling ready; needs the team's labelled photos | `scripts/eval.py`, `docs/research/labelling_guide.md`, `docs/research/evaluation.md` |
+| Phase 3: pipeline package | Done | `src/avtopassport/` |
+| Phase 4: app | Runs locally (laptop + phones on the same Wi-Fi); public deploy waits for the HF PRO decision | `src/avtopassport/api/`, `web/`, `Dockerfile`, `.github/workflows/deploy.yml` |
+| 3D model (scope change 2026-10-11) | Fast DA3 point cloud in the app; high-quality COLMAP + Gaussian splats on a GPU | `src/avtopassport/recon3d/`, `scripts/recon3d_hq.py`, `docs/decisions/004-3d-reconstruction.md` |
 
 **Phase 1 smoke test.** `notebooks/01_smoke_test_colab.ipynb` runs the candidate damage, parts, privacy and VIN-OCR models on our own media. We run it in three places:
 - the dev laptop's NVIDIA RTX 5050 Laptop GPU
@@ -147,6 +148,27 @@ web/                   mobile frontend (Phase 4)
 - **Team photos and video:** the licence for the blurred copies in `data/processed/` has not been decided yet.
 - **Network use (AGPL-3.0 section 13):** once the app is deployed, anyone who uses it over the network must be offered the complete source of the running version. The deployed app must therefore link to this repository at the deployed commit.
 
+## Run the app locally (laptop + phones)
+
+```bash
+# once: the separate 3D environment (Depth Anything 3 pins numpy<2)
+uv venv --python 3.12 .venv-3d
+uv pip install --python .venv-3d/bin/python torch torchvision --index-url https://download.pytorch.org/whl/cu130
+uv pip install --python .venv-3d/bin/python depth-anything-3==0.1.1 addict
+uv pip install --python .venv-3d/bin/python --no-deps -e .
+
+# the app (models load on start; first request may wait for the warm-up)
+YOLO_AUTOINSTALL=false AVTO_DATA_DIR=var .venv/bin/uvicorn avtopassport.api.app:app --host 0.0.0.0 --port 8000
+```
+
+- Open `http://localhost:8000` on the laptop, or `http://<laptop LAN IP>:8000` on a phone on the same Wi-Fi.
+- Phones can record and upload over plain HTTP. "Find nearby body shops" with GPS needs HTTPS, so on plain HTTP use the
+  "Tashkent centre" button. A free `cloudflared` quick tunnel gives a temporary HTTPS URL if needed.
+- Data goes to `var/` (gitignored): blurred frames, passports (`var/passports.sqlite`), PDFs and 3D models. Raw uploads
+  are deleted after each inspection.
+- Optional high-quality 3D on the GPU: see `scripts/recon3d_hq.py` (COLMAP + Brush; Brush binary goes to `tools/`).
+
 ## Deploy
 
-Not deployed yet. See `docs/decisions/003-deploy-hf-docker-local-first.md`.
+Not deployed yet. The Dockerfile and a manual-only GitHub Actions workflow are ready, but the public Space needs HF PRO
+(see `docs/decisions/003-deploy-hf-docker-local-first.md`). That decision is the user's, after testing locally.
