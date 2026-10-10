@@ -43,7 +43,9 @@ Every 10th frame is held out for evaluation, so the PSNR on held-out views measu
 it was not trained on.
 
 <!-- BEGIN:brush -->
-_not generated yet_
+| name | exit | steps | seconds | max_splats | ply_mb | psnr | source |
+|---|---|---|---|---|---|---|---|
+| car_30k | 0 | 30000 | 1735.1 | 1000000 | 46.3 | held-out mean 12.66 dB (whole image), 24.48 dB (car mask), 12 views; outputs/recon3d/hq/heldout_psnr.json | outputs/recon3d/hq/brush_report_car_30k.json |
 <!-- END:brush -->
 
 ## Observations
@@ -56,5 +58,11 @@ _not generated yet_
    - car-only masks from the parts model;
    - more points kept;
    - a z-buffer preview renderer.
-3. **High-quality path.** For accuracy and detail, the user asked for more frames from the video and better calibration.
+3. **Held-out views (Brush).**
+   - The car itself is reproduced in detail: decals, wheels, lamps and reflections.
+   - The background is not. Sky, trees and the ground close to the lens turn into starburst streaks, because the
+     walkaround sees them from only a few angles.
+   - The PSNR above is reported separately for the whole image and for the car mask. The app shows the splats cropped
+     to the car.
+4. **High-quality path.** For accuracy and detail, the user asked for more frames from the video and better calibration.
    That became this path: 4 fps frames, COLMAP calibration, then Gaussian splats. It needs a GPU.

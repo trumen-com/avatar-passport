@@ -76,6 +76,11 @@ def blocks() -> dict[str, str]:
                       "ply_mb": ", ".join(map(str, r.get("ply_mb", []))),
                       "psnr": "; ".join(r.get("psnr_lines", [])[-2:]) or "not reported",
                       "source": f"outputs/recon3d/hq/{p.name}"})
+    held = _load(OUT / "hq" / "heldout_psnr.json")
+    if held:
+        for b in brush:
+            b["psnr"] = (f"held-out mean {held['mean_psnr_db']} dB (whole image), {held['mean_psnr_car_db']} dB "
+                         f"(car mask), {held['n_heldout']} views; outputs/recon3d/hq/heldout_psnr.json")
     out["brush"] = table(brush, ["name", "exit", "steps", "seconds", "max_splats", "ply_mb", "psnr", "source"])
     return out
 
