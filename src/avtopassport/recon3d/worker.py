@@ -45,6 +45,14 @@ PREVIEW_VIEWS = {"az045": (45.0, 15.0), "az090": (90.0, 15.0), "az180": (180.0, 
 PREVIEW_CROP = 1.5  # keep points within PREVIEW_CROP x walkaround radius of the car centre
 PREVIEW_EYE = 2.5  # virtual camera distance, x walkaround radius (outside the crop sphere)
 PREVIEW_BG = (24, 24, 28)
+# Cloud clean-up (tuned 2026-10-11 on the demo walkaround by comparing preview.jpg before / after; the counts of
+# every run are in result.json["filters"]). Confidence percentile 60 was tried and removed most of the roof and one
+# side (reflective white paint has low DA3 confidence), so it stays at 40.
+DEFAULT_CONF_PERCENTILE = 40.0
+EDGE_REL_THRESHOLD = 0.015  # drop pixels whose 3x3 neighbourhood depth differs by > 1.5% ("flying pixels" at edges)
+VOXEL_FRAC = 0.005  # voxel edge = 0.5% of the robust (1-99 percentile) bounding-box diagonal
+VOXEL_MIN_POINTS = 6  # voxels with fewer points are noise (applied after the --max-points subsample)
+COMPONENT_MIN_FRAC = 0.05  # keep 26-connected voxel clusters with >= 5% of the largest cluster's points
 
 
 class WorkerError(RuntimeError):
@@ -113,6 +121,117 @@ def load_car_mask(path: Path, hw: tuple[int, int], dilate_frac: float = MASK_DIL
     with Image.open(path) as im:
         m = np.asarray(im.convert("L").resize((w, h), Image.NEAREST)) > 127
     return dilate(m, int(round(dilate_frac * max(h, w))))
+
+
+def depth_edges(depth: np.ndarray, rel_threshold: float) -> np.ndarray:
+    """bool [h, w]: pixels whose 3x3 neighbourhood depth deviates by more than rel_threshold * own depth.
+
+    Monocular / feed-forward depth interpolates across silhouettes, so these pixels back-project to the long
+    "flying pixel" streaks between the car and the background. Non-finite / non-positive depth counts as an edge.
+    """
+    z = np.asarray(depth, dtype=np.float32)
+    good = np.isfinite(z) & (z > 0)
+    zz = np.where(good, z, np.nan)
+    p = np.pad(zz, 1, mode="edge")
+    h, w = z.shape
+    zmax = np.full_like(zz, -np.inf)
+    zmin = np.full_like(zz, np.inf)
+    for dv in range(3):
+        for du in range(3):
+            win = p[dv:dv + h, du:du + w]
+            zmax = np.fmax(zmax, win)
+            zmin = np.fmin(zmin, win)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        rel = np.maximum(zmax - zz, zz - zmin) / zz
+    edge = ~(rel <= rel_threshold)  # NaN (invalid pixel) -> edge
+    # a valid pixel next to an invalid one: fmax/fmin ignore NaN, so mark those explicitly
+    bad = np.pad(~good, 1, mode="constant", constant_values=False)
+    near_bad = np.zeros_like(good)
+    for dv in range(3):
+        for du in range(3):
+            near_bad |= bad[dv:dv + h, du:du + w]
+    return edge | near_bad
+
+
+def _voxel_components(keys: np.ndarray) -> np.ndarray:
+    """Labels of 26-connected components for unique integer voxel coords keys [n, 3] (numpy only, hook + jump)."""
+    n = len(keys)
+    if n == 0:
+        return np.zeros(0, dtype=np.int64)
+    k = keys - keys.min(axis=0) + 1
+    dims = k.max(axis=0) + 2
+    lin = (k[:, 0] * dims[1] + k[:, 1]) * dims[2] + k[:, 2]
+    order = np.argsort(lin)
+    lin_sorted = lin[order]
+    ei, ej = [], []
+    for dx in (-1, 0, 1):  # 13 half-neighbourhood offsets; edges are undirected
+        for dy in (-1, 0, 1):
+            for dz in (-1, 0, 1):
+                if (dx, dy, dz) <= (0, 0, 0):
+                    continue
+                nb = lin + (dx * dims[1] + dy) * dims[2] + dz
+                pos = np.searchsorted(lin_sorted, nb)
+                pos[pos >= n] = 0
+                hit = lin_sorted[pos] == nb
+                ei.append(np.nonzero(hit)[0])
+                ej.append(order[pos[hit]])
+    a, b = np.concatenate(ei), np.concatenate(ej)
+    parent = np.arange(n)
+    for _ in range(10_000):
+        pa, pb = parent[a], parent[b]
+        lo, hi = np.minimum(pa, pb), np.maximum(pa, pb)
+        diff = lo != hi
+        if not diff.any():
+            break
+        np.minimum.at(parent, hi[diff], lo[diff])
+        while True:  # pointer jumping
+            pp = parent[parent]
+            if np.array_equal(pp, parent):
+                break
+            parent = pp
+    return parent
+
+
+def voxel_filter(pts: np.ndarray, voxel: float, min_points: int = VOXEL_MIN_POINTS,
+                 component_min_frac: float = COMPONENT_MIN_FRAC) -> tuple[np.ndarray, dict]:
+    """bool keep mask [N]: drop points in voxels with < min_points points, then points whose voxel is not in a
+    26-connected cluster holding >= component_min_frac of the largest cluster's points. Returns (keep, stats)."""
+    n = len(pts)
+    stats = {"voxel_size": float(voxel), "min_points": int(min_points), "component_min_frac": float(component_min_frac),
+             "n_in": int(n)}
+    if n == 0 or not np.isfinite(voxel) or voxel <= 0:
+        stats.update(n_voxels=0, n_components=0, n_sparse_dropped=0, n_disconnected_dropped=0, n_out=int(n))
+        return np.ones(n, dtype=bool), stats
+    q = np.floor((pts - pts.min(axis=0)) / voxel).astype(np.int64)
+    dims = q.max(axis=0) + 1
+    lin = (q[:, 0] * dims[1] + q[:, 1]) * dims[2] + q[:, 2]  # one int64 key per voxel (faster than axis=0)
+    ulin, inv, counts = np.unique(lin, return_inverse=True, return_counts=True)
+    inv = inv.reshape(-1)
+    uniq = np.stack([ulin // (dims[1] * dims[2]), (ulin // dims[2]) % dims[1], ulin % dims[2]], axis=1)
+    dense = counts >= min_points
+    keep_vox = dense.copy()
+    n_comp = 0
+    if dense.any():
+        idx = np.nonzero(dense)[0]
+        labels = _voxel_components(uniq[idx])
+        comp_ids, comp_inv = np.unique(labels, return_inverse=True)
+        n_comp = len(comp_ids)
+        comp_pts = np.bincount(comp_inv.reshape(-1), weights=counts[idx], minlength=n_comp)
+        big = comp_pts >= component_min_frac * comp_pts.max()
+        keep_vox[idx] = big[comp_inv.reshape(-1)]
+    keep = keep_vox[inv]
+    n_sparse = int((~dense[inv]).sum())
+    stats.update(n_voxels=int(len(uniq)), n_components=int(n_comp), n_sparse_dropped=n_sparse,
+                 n_disconnected_dropped=int(n - keep.sum()) - n_sparse, n_out=int(keep.sum()))
+    return keep, stats
+
+
+def robust_diagonal(pts: np.ndarray) -> float:
+    """Diagonal of the 1-99 percentile bounding box (same definition as pins.bbox_diagonal)."""
+    if len(pts) == 0:
+        return 0.0
+    lo, hi = np.percentile(pts, [1.0, 99.0], axis=0)
+    return float(np.linalg.norm(hi - lo))
 
 
 def subsample(n: int, k: int, seed: int = 0) -> np.ndarray | None:
@@ -312,6 +431,13 @@ def run(args: argparse.Namespace) -> dict:
             if mp.exists():
                 valid[i] &= load_car_mask(mp, (h, w))
                 n_masks += 1
+    n_valid_conf = int((valid & (conf >= thr)).sum())
+    n_edge = 0
+    if args.edge_threshold > 0:
+        for i in range(n):
+            e = depth_edges(depth[i], args.edge_threshold)
+            n_edge += int((e & valid[i] & (conf[i] >= thr)).sum())
+            valid[i] &= ~e  # stored in depth.npz too, so 3D pins never sit on a flying pixel
     all_pts, all_cols, cams = [], [], []
     for i, f in enumerate(frames):
         keep = valid[i] & (conf[i] >= thr)
@@ -321,12 +447,26 @@ def run(args: argparse.Namespace) -> dict:
             orig_wh = list(im.size)
         cams.append({"frame": f.name, "orig_wh": orig_wh, "intrinsics": Ks[i].tolist(), "w2c": w2cs[i].tolist()})
     pts, cols = np.concatenate(all_pts), np.concatenate(all_cols)
-    n_all = len(pts)
-    if n_all == 0:
-        raise WorkerError("no points survived the confidence / sky / car-mask filters")
-    sel = subsample(n_all, args.max_points)
+    n_before_voxel = len(pts)
+    if n_before_voxel == 0:
+        raise WorkerError("no points survived the confidence / sky / car-mask / depth-edge filters")
+    n_before_subsample = n_before_voxel
+    sel = subsample(n_before_voxel, args.max_points)  # first, so voxel densities do not depend on process_res
     if sel is not None:
         pts, cols = pts[sel], cols[sel]
+    n_before_voxel = len(pts)
+    t_vox = time.perf_counter()
+    voxel_stats: dict | None = None
+    if args.voxel_frac > 0:
+        diag = robust_diagonal(pts)
+        keep_v, voxel_stats = voxel_filter(pts, args.voxel_frac * diag, args.voxel_min_points,
+                                           args.component_min_frac)
+        voxel_stats.update(voxel_frac=args.voxel_frac, robust_diagonal=diag)
+        pts, cols = pts[keep_v], cols[keep_v]
+    t_vox = time.perf_counter() - t_vox
+    n_all = len(pts)
+    if n_all == 0:
+        raise WorkerError("no points survived the voxel outlier filter")
     write_ply(out / "points.ply", pts, cols)
     sel_web = subsample(len(pts), WEB_MAX_POINTS, seed=1)
     pts_web, cols_web = (pts, cols) if sel_web is None else (pts[sel_web], cols[sel_web])
@@ -356,6 +496,12 @@ def run(args: argparse.Namespace) -> dict:
         "processed_hw": [h, w], "masks_dir": str(args.masks_dir) if args.masks_dir else None,
         "n_masks_used": n_masks, "conf_percentile": args.conf_percentile, "conf_threshold": thr,
         "n_points_after_filter": int(n_all), "n_points": int(len(pts)), "n_points_web": int(len(pts_web)),
+        "filters": {"n_pixels_valid_and_confident": n_valid_conf, "max_points": args.max_points,
+                    "n_points_before_subsample": int(n_before_subsample),
+                    "depth_edge": {"rel_threshold": args.edge_threshold, "window": "3x3",
+                                   "n_pixels_dropped": n_edge},
+                    "n_points_before_voxel": int(n_before_voxel), "voxel": voxel_stats,
+                    "voxel_seconds": round(t_vox, 3)},
         "files": {"points": "points.ply", "points_web": "points_web.ply", "cameras": "cameras.json",
                   "depth": "depth.npz", "previews": previews},
         "ply_bytes": (out / "points.ply").stat().st_size, "ply_web_bytes": (out / "points_web.ply").stat().st_size,
@@ -392,7 +538,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--process-res", type=int, default=None, help="default 756 on cuda, 504 on cpu")
     ap.add_argument("--threads", type=int, default=0, help="torch CPU threads (0 = default)")
     ap.add_argument("--masks-dir", type=Path, default=None, help="optional <stem>.png car masks (255 = car)")
-    ap.add_argument("--conf-percentile", type=float, default=40.0)
+    ap.add_argument("--conf-percentile", type=float, default=DEFAULT_CONF_PERCENTILE)
+    ap.add_argument("--edge-threshold", type=float, default=EDGE_REL_THRESHOLD,
+                    help="relative 3x3 depth jump that marks a flying pixel (0 = off)")
+    ap.add_argument("--voxel-frac", type=float, default=VOXEL_FRAC,
+                    help="voxel edge as a fraction of the robust bbox diagonal (0 = no voxel filter)")
+    ap.add_argument("--voxel-min-points", type=int, default=VOXEL_MIN_POINTS)
+    ap.add_argument("--component-min-frac", type=float, default=COMPONENT_MIN_FRAC)
     ap.add_argument("--max-points", type=int, default=1_500_000)
     ap.add_argument("--no-preview", action="store_true")
     return ap.parse_args(argv)

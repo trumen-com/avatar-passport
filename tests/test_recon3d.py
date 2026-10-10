@@ -171,3 +171,71 @@ def test_build_missing_python_and_available(tmp_path: Path) -> None:
     assert build_mod.available(tmp_path / "nope")[0] is False
     ok, msg = build_mod.available(fake_python(tmp_path, "pass"))
     assert ok and "importable" in msg
+
+
+# --------------------------------------------------------------------------------------------- cloud clean-up
+
+def test_depth_edges_marks_steps_not_smooth_slopes() -> None:
+    z = np.full((20, 30), 2.0, np.float32)
+    z[:, 15:] = 4.0  # silhouette: car at 2 m, background at 4 m
+    e = worker.depth_edges(z, 0.015)
+    assert e[:, 14].all() and e[:, 15].all()  # both sides of the jump (flying pixels on either side)
+    assert not e[:, :13].any() and not e[:, 17:].any()
+    slope = np.tile(np.linspace(2.0, 2.2, 30, dtype=np.float32), (20, 1))  # 0.3% per pixel: a slanted panel
+    assert not worker.depth_edges(slope, 0.015).any()
+    bad = np.full((5, 5), 3.0, np.float32)
+    bad[2, 2] = np.nan
+    eb = worker.depth_edges(bad, 0.015)
+    assert eb[1:4, 1:4].all() and not eb[0, 0]  # invalid pixel and its neighbours
+
+
+def _blob(rng: np.random.Generator, centre: tuple[float, float, float], n: int, size: float) -> np.ndarray:
+    return (np.asarray(centre) + rng.uniform(-size, size, (n, 3))).astype(np.float32)
+
+
+def test_voxel_filter_keeps_main_cluster_drops_noise_and_islands() -> None:
+    rng = np.random.default_rng(0)
+    car = _blob(rng, (0, 0, 0), 60_000, 1.0)
+    island = _blob(rng, (5, 0, 0), 600, 0.05)  # dense but small and disconnected (< 5% of the car)
+    noise = rng.uniform(-4, 4, (300, 3)).astype(np.float32)
+    noise = noise[np.abs(noise).max(axis=1) > 1.3]  # floating points away from the car
+    pts = np.concatenate([car, island, noise])
+    keep, st = worker.voxel_filter(pts, voxel=0.2, min_points=6, component_min_frac=0.05)
+    assert keep[: len(car)].mean() > 0.99
+    assert not keep[len(car): len(car) + len(island)].any()
+    assert not keep[len(car) + len(island):].any()
+    assert st["n_in"] == len(pts) and st["n_out"] == int(keep.sum())
+    assert st["n_sparse_dropped"] + st["n_disconnected_dropped"] == len(pts) - st["n_out"]
+    assert st["n_components"] >= 2
+
+
+def test_voxel_components_26_connectivity() -> None:
+    keys = np.array([[0, 0, 0], [1, 1, 1], [2, 2, 2], [10, 10, 10], [11, 10, 10]])
+    lab = worker._voxel_components(keys)
+    assert lab[0] == lab[1] == lab[2] and lab[3] == lab[4] and lab[0] != lab[3]
+    assert worker._voxel_components(np.zeros((0, 3), dtype=np.int64)).size == 0
+
+
+def test_voxel_filter_edge_cases_and_speed() -> None:
+    keep, st = worker.voxel_filter(np.zeros((0, 3), np.float32), 0.1)
+    assert keep.size == 0 and st["n_out"] == 0
+    pts = np.random.default_rng(1).normal(size=(1000, 3)).astype(np.float32)
+    keep, _ = worker.voxel_filter(pts, 0.0)  # disabled
+    assert keep.all()
+    assert worker.robust_diagonal(np.zeros((0, 3))) == 0.0
+    import time
+
+    big = np.random.default_rng(2).normal(size=(1_500_000, 3)).astype(np.float32)
+    t0 = time.perf_counter()
+    keep, st = worker.voxel_filter(big, 0.005 * worker.robust_diagonal(big))
+    assert time.perf_counter() - t0 < 10.0  # measured ~0.2-0.8 s on the dev laptop; generous for CI
+    assert st["n_in"] == 1_500_000
+
+
+def test_worker_cli_filter_defaults() -> None:
+    a = worker.parse_args(["--frames-dir", "f", "--out-dir", "o"])
+    assert a.conf_percentile == worker.DEFAULT_CONF_PERCENTILE == 40.0
+    assert a.edge_threshold == worker.EDGE_REL_THRESHOLD and a.voxel_frac == worker.VOXEL_FRAC
+    assert a.voxel_min_points == worker.VOXEL_MIN_POINTS and a.component_min_frac == worker.COMPONENT_MIN_FRAC
+    b = worker.parse_args(["--frames-dir", "f", "--out-dir", "o", "--edge-threshold", "0", "--voxel-frac", "0"])
+    assert b.edge_threshold == 0 and b.voxel_frac == 0
