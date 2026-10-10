@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "avtopassport"
+version = "0.1.0"
+description = "Phone walkaround video -> verified digital condition passport tied to the car's VIN"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "AGPL-3.0-only"
+# Run 1: dependencies live in requirements*.txt and are installed with `uv pip`.
+# They move here when the Phase 4 Docker image is finalised.
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["src"]
+
+[tool.uv]
+# The venv is managed with `uv pip`; stop `uv run` from locking/syncing it.
+managed = false

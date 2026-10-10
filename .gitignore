@@ -1,0 +1,46 @@
+# --- raw / personal media: never commit (plates, faces) ---
+data/raw/
+data/local_testset/**
+!data/local_testset/
+!data/local_testset/**/
+!data/local_testset/**/*.json
+!data/local_testset/**/*.csv
+!data/local_testset/.gitkeep
+# camera originals anywhere in the tree (any case)
+*.[Hh][Ee][Ii][Cc]
+*.[Hh][Ee][Ii][Ff]
+*.[Mm][Oo][Vv]
+*.[Mm][Pp]4
+*.[Dd][Nn][Gg]
+# raw JPEGs dropped in the repo root by mistake
+/*.[Jj][Pp][Gg]
+/*.[Jj][Pp][Ee][Gg]
+
+# --- model weights and run outputs ---
+models/
+outputs/
+runs/
+weights/
+*.pt
+*.onnx
+*.engine
+
+# --- notebooks: only the cleared source notebook is committed ---
+*.nbconvert.ipynb
+notebooks/*.html
+.ipynb_checkpoints/
+
+# --- python / env ---
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+uv.lock
+.env
+.env.*
+
+# --- editors / OS ---
+.vscode/
+.idea/
+.DS_Store

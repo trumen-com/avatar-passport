@@ -1,0 +1,17 @@
+# Local development / smoke test (Python 3.12, uv venv).
+# Install torch + torchvision FIRST from the PyTorch CUDA 13.0 index (RTX 50xx / sm_120):
+#   uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+# then:
+#   uv pip install -r requirements-dev.txt --excludes requirements-exclude.txt
+-r requirements.txt
+ultralytics==8.4.175
+onnx==1.23.2
+onnxslim==0.1.98
+easyocr==1.7.2
+pandas
+matplotlib
+pytest
+nbformat
+nbclient
+nbconvert
+ipykernel
