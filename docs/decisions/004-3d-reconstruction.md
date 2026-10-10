@@ -37,3 +37,23 @@ Constraints:
 - **New dependencies** (depth-anything-3, three.js) go into `DATA_SOURCES.md` with their licences. The non-commercial
   DA3 checkpoints (GIANT, NESTED, LARGE, LARGE-1.1) are not used.
 - **More engineering than the spin viewer:** job state, storage of the `.ply`, and a viewer page.
+
+## Update 2026-10-11 (overnight): high-quality path implemented
+
+The user reviewed the first point cloud and asked for more accuracy and detail, using more frames from the video and
+better calibration. Changes made in response:
+- **Point cloud (fast path):** a depth-edge filter, a voxel-density filter and a connected-cluster filter remove the
+  "flying pixel" streaks. The viewer opens on an upright 3/4 view using the orientation saved in `cameras.json`.
+- **High-quality path (`src/avtopassport/recon3d/hq.py`):**
+  1. Anonymised frames at about 4 fps, full resolution.
+  2. COLMAP structure-from-motion: one shared camera, exhaustive matching to close the walkaround loop.
+  3. Brush Gaussian splats on the GPU.
+  4. A car crop. An SfM point counts as car when most of its observations fall inside the parts-model car masks; a
+     robust, car-aligned box is fitted to those points, and Gaussians inside it are kept.
+  5. Held-out evaluation. Every 10th frame is never trained on, and PSNR is measured against it over the whole image
+     and inside the car mask.
+  
+  Measured numbers are generated into `docs/research/recon3d_smoke_results.md`.
+- **Where it runs:** only with a GPU worker (`AVTO_HQ3D=1`). The UI labels it as unavailable on the CPU-only public
+  deployment, and the fast DA3 cloud remains the CPU path.
+- **Licences added:** pycolmap (BSD-3), Brush (Apache-2.0), Spark (MIT). See `DATA_SOURCES.md`.
