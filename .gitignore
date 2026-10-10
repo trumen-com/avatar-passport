@@ -45,3 +45,6 @@ uv.lock
 .vscode/
 .idea/
 .DS_Store
+
+# Claude Code local scheduler state
+.claude/scheduled_tasks.lock

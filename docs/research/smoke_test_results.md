@@ -602,6 +602,12 @@ quoted here is copied from those tables; nothing here is a new measurement.
    Gaussian blur scaled to each box replaces the mosaic; a COCO person-head band backs up YuNet for faces. Residual risk:
    a large, oblique plate seen only by a secondary pass is no longer blurred; the W2 visual audit checks the committed
    images for exactly this.
+   W2 audit of `data/processed/` (3 independent reviewers, 2026-10-11): no blocker. Three minor findings, two fixed:
+   a ~10 px bystander head and a person reflected in door glass were missed by YuNet and by the person detector at
+   640 px; the person-head backstop now runs at 1280 px and covers both. A hand next to the lens was treated as a
+   "person" and blurred the bottom of whole frames; wide or flat "person" boxes are now ignored. Known limitation: the
+   front plate in `CAR8` is seen almost edge-on and no detector finds it above threshold; the auditor could read no
+   characters, so it is left as is.
 6. **Latency.** On the GPU the main damage model runs at 23.150 ms per frame (median, end to end). On the 2-thread
    pinned CPU proxy for the Hugging Face CPU Basic host it takes 1699.006 ms per frame (raw ONNX Runtime), and the
    proxy is an optimistic lower bound. The per-inspection estimate is dominated by privacy on the 24 MP photos and on
