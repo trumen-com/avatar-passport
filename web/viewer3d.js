@@ -45,7 +45,7 @@ export function createViewer(container, { plyUrl, pins = [] } = {}) {
 
     let renderer;
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });  // keeps the canvas readable for screenshots
     } catch (e) {
       container.replaceChildren();
       reject(new Error(`WebGL is not available (${e && e.message ? e.message : e})`));
