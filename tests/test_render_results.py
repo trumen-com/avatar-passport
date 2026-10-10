@@ -281,7 +281,7 @@ def test_real_skeleton_has_every_marker_once_and_renders(tmp_path):
     text = (docs / "smoke_test_results.md").read_text()
     for name in SMOKE_BLOCKS:
         assert not isinstance(rr.marker_span(text, name), str), name
-        assert f"<!-- BEGIN:{name} -->\n_not generated yet_\n<!-- END:{name} -->" in text
+        assert text.count(f"<!-- BEGIN:{name} -->") == 1 and text.count(f"<!-- END:{name} -->") == 1
     assert run(out, docs) == 0
     assert outside((docs / "smoke_test_results.md").read_text()) == outside(text)
     assert run(out, docs, "--check") == 0

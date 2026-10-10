@@ -51,3 +51,9 @@ uv.lock
 
 # app runtime data (inspections, uploads, SQLite)
 var/
+
+# third-party binaries downloaded locally (Brush splat trainer)
+tools/
+
+# Brush GPU autotune cache
+target/
