@@ -75,7 +75,7 @@ How to read this table:
 | DA3-BASE, CPU pinned to 2 threads | 29 | 2.0 | 92.1 | 96.6 | 2-thread pinned proxy, optimistic lower bound; torch threads 2 | `outputs/recon3d/R3D-cpu2-pinned/results.json` |
 | DA3-BASE, GPU, app module (pins, previews, web PLY) | 29 | 1.6 | 2.2 | 13.3 | measured on the dev laptop (RTX 5050 / Ryzen 7 260) | `outputs/recon3d/module-gpu/result.json` seconds.total |
 | pycolmap 4.2.1 SfM (input for Brush splats) | 115 |  |  | 283.8 | measured on the dev laptop (RTX 5050 / Ryzen 7 260); features + matching + mapping | `outputs/recon3d/hq/sfm_report.json` |
-| Brush splat training, GPU |  |  |  | not measured yet |  | no `outputs/recon3d/hq/brush_report_*.json` file yet |
+| Brush splat training, GPU, 30000 steps (exit 0) |  |  |  | 1,735.1 | measured on the dev laptop (RTX 5050 / Ryzen 7 260) | `outputs/recon3d/hq/brush_report_car_30k.json` |
 <!-- END:measured_3d_time -->
 
 - **The 3D model is asynchronous.** The passport returns first, and the 3D view appears when it is ready (ADR 004). Its time is therefore not added to the inspection time in section 3.
