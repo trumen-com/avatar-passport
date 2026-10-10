@@ -7,7 +7,11 @@ Flow of one job (``DATA_DIR/jobs/<id>/``):
 3. On success: ``passport.store`` (``DATA_DIR/passports.sqlite``) -> ``passport.diff`` against the previous inspection of
    the same VIN -> ``passport.report`` JSON + PDF (first spin frames as images).
 4. The 3D job goes to the second worker: ``recon3d.build`` on ``<job>/frames`` then ``recon3d.pins.project_pins``.
-   If the 3D environment is missing the status is ``unavailable`` (never a fake model).
+   If the 3D environment is missing the status is ``unavailable`` (never a fake model). The viewer orientation the
+   worker measured (cameras.json: center, up, forward0, walkaround_radius) is copied into ``recon3d.view``.
+5. Optional, GPU only (``AVTO_HQ3D=1`` and ``recon3d.hq.available()``): after the DA3 job, a third worker runs
+   ``recon3d.hq.build_hq`` (COLMAP SfM + Brush Gaussian splats) on ALL the blurred frames the inspection saved; state
+   in ``recon3d_hq``. More frames = better splats: raise ``AVTO_FPS`` / ``AVTO_MAX_FRAMES`` for HQ demos.
 
 Job state is written to ``<job>/state.json`` after every change, so a restarted server still serves finished jobs.
 Every error is captured into the job state; nothing here may crash the server. The sandbox registry
@@ -149,10 +153,30 @@ class StoreLike(Protocol):
     def previous(self, vin: str, inspection_id: int) -> dict[str, Any] | None: ...
 
 
+def inspection_overrides() -> dict[str, Any]:
+    """InspectionConfig overrides from the environment: AVTO_FPS (frames per second kept), AVTO_MAX_FRAMES.
+
+    The defaults (2.5 fps, 72 frames) suit the passport; the optional HQ 3D stage gets better with more frames.
+    Invalid values are ignored (logged)."""
+    out: dict[str, Any] = {}
+    for env, key, cast in (("AVTO_FPS", "fps", float), ("AVTO_MAX_FRAMES", "max_frames", int)):
+        raw = os.environ.get(env, "").strip()
+        if not raw:
+            continue
+        try:
+            value = cast(raw)
+        except ValueError:
+            log.warning("ignoring %s=%r (not a number)", env, raw)
+            continue
+        if value > 0:
+            out[key] = value
+    return out
+
+
 def _make_inspector(device: str) -> InspectorLike:
     from ..pipeline.run import InspectionConfig, Inspector  # noqa: PLC0415 - heavy (torch / ultralytics)
 
-    return Inspector(InspectionConfig(device=device))
+    return Inspector(InspectionConfig(device=device, **inspection_overrides()))
 
 
 def _open_store(path: Path) -> StoreLike:
@@ -198,6 +222,39 @@ def _project_pins(out_dir: Path, pins2d: Any, frame_size: Any) -> list[dict[str,
     return project_pins(out_dir, pins2d, frame_size)
 
 
+def _hq_available() -> tuple[bool, str]:
+    from ..recon3d.hq import available  # noqa: PLC0415
+
+    ok, msg = available()
+    return bool(ok), str(msg)
+
+
+def _hq_build(frames_dir: Path, out_dir: Path, steps: int, pins2d: Any, masks_dir: Path | None) -> dict[str, Any]:
+    from ..recon3d.hq import build_hq  # noqa: PLC0415
+
+    return build_hq(frames_dir, out_dir, steps=steps, pins2d=pins2d, masks_dir=masks_dir)
+
+
+def read_view(out_dir: Path) -> dict[str, Any] | None:
+    """Viewer orientation measured by the 3D worker (cameras.json) -> {center, up, forward0, radius}, or None."""
+    try:
+        meta = json.loads((Path(out_dir) / "cameras.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    view: dict[str, Any] = {}
+    for key, src in (("center", "center"), ("up", "up"), ("forward0", "forward0")):
+        v = meta.get(src)
+        if not (isinstance(v, list) and len(v) == 3 and all(isinstance(x, (int, float)) and math.isfinite(x)
+                                                             for x in v)):
+            return None
+        view[key] = [float(x) for x in v]
+    r = meta.get("walkaround_radius")
+    if not isinstance(r, (int, float)) or not math.isfinite(r) or r <= 0:
+        return None
+    view["radius"] = float(r)
+    return view
+
+
 def _load_palette() -> Any:
     from ..tryon.recolor import load_palette  # noqa: PLC0415
 
@@ -222,6 +279,8 @@ class Backends:
     recon3d_available: Callable[[], tuple[bool, str]] = _recon3d_available
     recon3d_build: Callable[[Path, Path, str, Path | None], dict[str, Any]] = _recon3d_build
     project_pins: Callable[[Path, Any, Any], list[dict[str, Any]]] = _project_pins
+    hq_available: Callable[[], tuple[bool, str]] = _hq_available
+    hq_build: Callable[[Path, Path, int, Any, Path | None], dict[str, Any]] = _hq_build
     load_palette: Callable[[], Any] = _load_palette
     recolor: Callable[[Any, Any, str], Any] = _recolor
 
@@ -245,6 +304,8 @@ class Settings:
     enable_recon3d: bool = True
     warmup: bool = True                    # load the models in the worker right after startup
     pdf_images: int = 4
+    enable_hq3d: bool = False              # AVTO_HQ3D=1: optional GPU-only SfM + Gaussian-splat stage
+    hq3d_steps: int = 30_000               # AVTO_HQ3D_STEPS: Brush training steps
 
     @classmethod
     def from_env(cls, data_dir: Path | None = None) -> Settings:
@@ -255,10 +316,16 @@ class Settings:
             max_video_bytes=int(float(os.environ.get("AVTO_MAX_VIDEO_MB", "200")) * 1024 * 1024),
             enable_recon3d=_env_flag("AVTO_RECON3D", True),
             warmup=_env_flag("AVTO_WARMUP", True),
+            enable_hq3d=_env_flag("AVTO_HQ3D", False),
+            hq3d_steps=int(os.environ.get("AVTO_HQ3D_STEPS") or 30_000),
         )
 
 
 # --------------------------------------------------------------------------------------------- manager
+
+def _new_hq_state() -> dict[str, Any]:
+    return {"status": "not_started", "splat": None, "seconds": None, "report": None, "error": None}
+
 
 def _new_state(job_id: str) -> dict[str, Any]:
     now = utc_now()
@@ -276,6 +343,7 @@ def _new_state(job_id: str) -> dict[str, Any]:
         "diff": None,
         "media": {"frames": [], "spin": [], "pdf": None, "masks": []},
         "recon3d": {"status": "not_started", "ply": None, "pins": [], "seconds": None, "error": None},
+        "recon3d_hq": _new_hq_state(),
         "timings_s": {},
     }
 
@@ -300,6 +368,8 @@ class JobManager:
         self._last_save: dict[str, float] = {}
         self._inspect_q: queue.Queue[_InspectionTask | str | None] = queue.Queue()
         self._recon_q: queue.Queue[str | None] = queue.Queue()
+        self._hq_q: queue.Queue[str | None] = queue.Queue()
+        self._hq_avail: tuple[bool, str] | None = None
         self._threads: list[threading.Thread] = []
         self._started = False
         self._inspector: InspectorLike | None = None
@@ -370,8 +440,20 @@ class JobManager:
             return self.recon3d_available()
         return False, "checking the 3D environment"
 
+    def hq_available(self) -> tuple[bool, str]:
+        """Cached ``recon3d.hq.available()`` when AVTO_HQ3D=1; otherwise disabled."""
+        if not self.settings.enable_hq3d:
+            return False, "high-quality 3D disabled (set AVTO_HQ3D=1 on a GPU worker)"
+        if self._hq_avail is None:
+            try:
+                self._hq_avail = self.backends.hq_available()
+            except Exception as exc:
+                self._hq_avail = (False, f"HQ 3D module not available: {type(exc).__name__}: {exc}")
+        return self._hq_avail
+
     def queue_sizes(self) -> dict[str, int]:
-        return {"inspections": self._inspect_q.unfinished_tasks, "recon3d": self._recon_q.unfinished_tasks}
+        return {"inspections": self._inspect_q.unfinished_tasks, "recon3d": self._recon_q.unfinished_tasks,
+                "recon3d_hq": self._hq_q.unfinished_tasks}
 
     # ----- lifecycle
     def start(self) -> None:
@@ -382,7 +464,8 @@ class JobManager:
             self.jobs_dir.mkdir(parents=True, exist_ok=True)
             self._recover()
             for name, q, handler in (("avto-inspect", self._inspect_q, self._handle_inspection),
-                                     ("avto-recon3d", self._recon_q, self._handle_recon3d)):
+                                     ("avto-recon3d", self._recon_q, self._handle_recon3d),
+                                     ("avto-recon3d-hq", self._hq_q, self._handle_hq)):
                 t = threading.Thread(target=self._loop, args=(q, handler), name=name, daemon=True)
                 t.start()
                 self._threads.append(t)
@@ -398,6 +481,7 @@ class JobManager:
             self._started = False
         self._inspect_q.put(None)
         self._recon_q.put(None)
+        self._hq_q.put(None)
         for t in self._threads:
             t.join(timeout)
         self._threads.clear()
@@ -406,7 +490,8 @@ class JobManager:
         """Block until both queues are empty and idle (tests, scripts). Returns False on timeout."""
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            if self._inspect_q.unfinished_tasks == 0 and self._recon_q.unfinished_tasks == 0:
+            if (self._inspect_q.unfinished_tasks == 0 and self._recon_q.unfinished_tasks == 0
+                    and self._hq_q.unfinished_tasks == 0):
                 return True
             time.sleep(0.02)
         return False
@@ -445,6 +530,12 @@ class JobManager:
                 st["recon3d"] = rec
                 self._recon_q.put(job_id)
                 changed = True
+            hq = st.get("recon3d_hq") or {}
+            waiting_lost = hq.get("status") == "waiting" and rec.get("status") not in {"queued", "running"}
+            if hq.get("status") in {"queued", "running"} or waiting_lost:  # ~45 min of GPU: never restarted silently
+                hq.update(status="error", error="interrupted by a server restart; the high-quality 3D was not finished")
+                st["recon3d_hq"] = hq
+                changed = True
             with self._lock:
                 self._states[job_id] = st
             if changed:
@@ -478,6 +569,11 @@ class JobManager:
             self._states[job_id]["recon3d"].update(fields)
         self._save(job_id)
 
+    def _update_hq(self, job_id: str, **fields: Any) -> None:
+        with self._lock:
+            self._states[job_id].setdefault("recon3d_hq", _new_hq_state()).update(fields)
+        self._save(job_id)
+
     def _warn(self, job_id: str, msg: str) -> None:
         log.warning("job %s: %s", job_id, msg)
         with self._lock:
@@ -503,9 +599,17 @@ class JobManager:
         st = self._state(job_id)
         if st is None:
             return None
+        rec = st.get("recon3d") or {}
+        if rec.get("status") == "done" and "view" not in rec:  # finished before the view existed: read it once
+            raw = rec.get("_ply_path")
+            view = read_view(Path(raw).parent) if raw else None
+            with self._lock:
+                rec["view"] = view
         with self._lock:
             view = json.loads(json.dumps(st))
         view["recon3d"] = {k: v for k, v in (view.get("recon3d") or {}).items() if not k.startswith("_")}
+        view["recon3d_hq"] = {k: v for k, v in (view.get("recon3d_hq") or _new_hq_state()).items()
+                              if not k.startswith("_")}
         view["status_url"] = f"{API_PREFIX}/{job_id}"
         return {k: v for k, v in view.items() if not k.startswith("_")}
 
@@ -723,6 +827,7 @@ class JobManager:
             st.update(status="done", result=result_dict, report=report, diff=diff_obj, inspection_id=inspection_id,
                       media=media, error=None)
         self._save(job_id)
+        self._prepare_hq(job_id)
         self._schedule_recon3d(job_id)
 
     def _store_media(self, job_id: str, inspection_id: int | None, media: dict[str, Any]) -> None:
@@ -742,17 +847,120 @@ class JobManager:
         ok, msg = self.recon3d_available()
         if not ok:
             self._update_recon(job_id, status="unavailable", error=msg)
+            self._schedule_hq(job_id)
             return
         if not self.frames_dir(job_id).is_dir():
             self._update_recon(job_id, status="error", error="no blurred frames to reconstruct from")
+            self._schedule_hq(job_id)
             return
         self._update_recon(job_id, status="queued", error=None)
         self._recon_q.put(job_id)
+
+    def _prepare_hq(self, job_id: str) -> None:
+        """Third, optional stage (GPU only): decided when the passport is done, queued after the DA3 job.
+
+        disabled / unavailable are statuses the web page does not show; "waiting" = waiting for the DA3 job."""
+        if not self.settings.enable_hq3d:
+            self._update_hq(job_id, status="disabled", error=None)
+            return
+        ok, msg = self.hq_available()
+        if not ok:
+            self._update_hq(job_id, status="unavailable", error=msg)
+            return
+        if not self.frames_dir(job_id).is_dir():
+            self._update_hq(job_id, status="error", error="no blurred frames to reconstruct from")
+            return
+        self._update_hq(job_id, status="waiting", error=None, steps=self.settings.hq3d_steps,
+                        previous_run=self.last_hq_run())
+
+    def _schedule_hq(self, job_id: str) -> None:
+        """Queue the HQ stage if it is waiting for the DA3 job (no-op otherwise)."""
+        st = self._state(job_id)
+        if st is None or (st.get("recon3d_hq") or {}).get("status") != "waiting":
+            return
+        self._update_hq(job_id, status="queued", error=None)
+        self._hq_q.put(job_id)
+
+    def last_hq_run(self) -> dict[str, Any] | None:
+        """Measured numbers of the most recent successful HQ build on this server (from its hq_report.json)."""
+        best: tuple[float, dict[str, Any]] | None = None
+        for rp in self.jobs_dir.glob("*/recon3d_hq/hq_report.json"):
+            try:
+                rep = json.loads(rp.read_text(encoding="utf-8"))
+                mtime = rp.stat().st_mtime
+            except (OSError, ValueError):
+                continue
+            if rep.get("ok") and (best is None or mtime > best[0]):
+                best = (mtime, rep)
+        if best is None:
+            return None
+        rep = best[1]
+        secs = rep.get("seconds") or {}
+        return {"seconds_total": secs.get("total"), "seconds_sfm": secs.get("sfm"), "seconds_brush": secs.get("brush"),
+                "steps": rep.get("steps"), "n_images": rep.get("n_images"),
+                "finished_utc": datetime.fromtimestamp(best[0], UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+    def _handle_hq(self, job_id: str) -> None:
+        st = self._state(job_id)
+        if st is None:
+            return
+        out_dir = self.job_dir(job_id) / "recon3d_hq"
+        extra = (st.get("result") or {}).get("extra") or {}
+        frames = self.frames_dir(job_id)
+        n_frames = sum(1 for p in frames.iterdir() if p.suffix.lower() in IMAGE_EXT) if frames.is_dir() else 0
+        self._update_hq(job_id, status="running", error=None, started_utc=utc_now(), n_frames=n_frames)
+        t0 = time.perf_counter()
+        mdir = self.masks_dir(job_id)
+        try:
+            res = jsonable(self.backends.hq_build(frames, out_dir, self.settings.hq3d_steps,
+                                                  extra.get("pins2d") or [], mdir if mdir.is_dir() else None)) or {}
+        except Exception as exc:
+            log.exception("hq3d %s failed", job_id)
+            self._update_hq(job_id, status="error", error=f"{type(exc).__name__}: {exc}",
+                            seconds=round(time.perf_counter() - t0, 1))
+            return
+        seconds = res.get("seconds_wall")
+        seconds = float(seconds) if isinstance(seconds, (int, float)) else round(time.perf_counter() - t0, 1)
+        report = res.get("report") if isinstance(res.get("report"), dict) else None
+        splat = Path(res["splat"]) if isinstance(res.get("splat"), str) else out_dir / "splat.ply"
+        if not res.get("ok") or not splat.is_file() or not _contained(splat, self.data_dir):
+            self._update_hq(job_id, status="error", seconds=seconds, report=report,
+                            error=str(res.get("error") or "high-quality 3D failed (no splat file)"))
+            return
+        url = f"{API_PREFIX}/{job_id}/recon3d/splat.ply"
+        full = Path(res["splat_full"]) if isinstance(res.get("splat_full"), str) else None
+        full_ok = full is not None and full.is_file() and _contained(full, self.data_dir) and full != splat
+        crop = (report or {}).get("crop") or {}
+        self._update_hq(job_id, status="done", splat=url, seconds=seconds, report=report, error=None,
+                        view=(report or {}).get("view"), pins=(report or {}).get("pins") or [],
+                        cropped=bool(crop.get("ok")) and full_ok,
+                        splat_full=f"{API_PREFIX}/{job_id}/recon3d/splat_full.ply" if full_ok else None,
+                        _splat_path=str(splat.resolve()), _splat_full_path=str(full.resolve()) if full_ok else None,
+                        finished_utc=utc_now())
+        self._store_media(job_id, st.get("inspection_id"), {"recon3d_splat": url})
+
+    def resolve_splat(self, job_id: str, full: bool = False) -> Path | None:
+        """The served HQ splat (car crop when available) or, with full=True, the uncropped one."""
+        st = self._state(job_id)
+        if st is None:
+            return None
+        hq = st.get("recon3d_hq") or {}
+        raw = hq.get("_splat_full_path" if full else "_splat_path")
+        if hq.get("status") != "done" or not raw:
+            return None
+        p = Path(raw)
+        return p if p.is_file() and _contained(p, self.data_dir) else None
 
     def _handle_recon3d(self, job_id: str) -> None:
         st = self._state(job_id)
         if st is None:
             return
+        try:
+            self._run_recon3d(job_id, st)
+        finally:
+            self._schedule_hq(job_id)
+
+    def _run_recon3d(self, job_id: str, st: dict[str, Any]) -> None:
         job_dir = self.job_dir(job_id)
         out_dir = job_dir / "recon3d"
         extra = (st.get("result") or {}).get("extra") or {}
@@ -791,7 +999,8 @@ class JobManager:
             log.exception("project_pins %s failed", job_id)
         ply_url = f"{API_PREFIX}/{job_id}/recon3d/points.ply"
         self._update_recon(job_id, status="done", ply=ply_url, pins=pins, seconds=seconds, error=None,
-                           pins_error=pins_error, info=info, _ply_path=str(ply.resolve()), finished_utc=utc_now())
+                           pins_error=pins_error, info=info, view=read_view(res_out), _ply_path=str(ply.resolve()),
+                           finished_utc=utc_now())
         self._store_media(job_id, st.get("inspection_id"), {"recon3d_ply": ply_url, "recon3d_pins": pins})
 
     def resolve_ply(self, job_id: str) -> Path | None:

@@ -8,6 +8,9 @@ Environment:
     AVTO_DEVICE          cpu | cuda | cuda:0 ... (default: cuda if torch sees a GPU, else cpu)
     AVTO_RECON3D_DEVICE  device for the 3D job (default: AVTO_DEVICE)
     AVTO_RECON3D=0       disable the 3D job (status "unavailable")
+    AVTO_HQ3D=1          optional GPU-only high-quality 3D (COLMAP SfM + Brush Gaussian splats) after the 3D job
+    AVTO_HQ3D_STEPS      Brush training steps for it (default 30000)
+    AVTO_FPS / AVTO_MAX_FRAMES  frames kept per inspection (defaults 2.5 / 72); more frames = better HQ 3D
     AVTO_WARMUP=0        do not load the models at startup (they load on the first inspection)
     AVTO_MAX_VIDEO_MB    upload limit (default 200)
     AVTO_COMMIT_SHA      deployed commit, shown by /api/version (AGPL-3.0 section 13 source link)
@@ -139,6 +142,7 @@ def create_app(*, settings: Settings | None = None, backends: Backends | None = 
         ok3d, msg3d = jobs.recon3d_available_nowait()
         return {"ok": True, "device": jobs.device, "models_ready": jobs.models_ready,
                 "models_error": jobs.models_error, "recon3d_available": ok3d, "recon3d_message": msg3d,
+                "hq3d_enabled": settings.enable_hq3d,
                 "version": __version__, "commit": commit_sha(), "queue": jobs.queue_sizes()}
 
     @app.get("/api/version")
@@ -231,6 +235,27 @@ def create_app(*, settings: Settings | None = None, backends: Backends | None = 
             raise HTTPException(404, f"3D model not ready (status: {st['recon3d'].get('status')})")
         return FileResponse(path, media_type="application/octet-stream",
                             headers={"Cache-Control": "private, max-age=86400"})
+
+    def _splat(job_id: str, full: bool) -> FileResponse:
+        st = _job_or_404(job_id)
+        path = jobs.resolve_splat(job_id, full=full)
+        if path is None:
+            status = (st.get("recon3d_hq") or {}).get("status")
+            what = "uncropped high-quality 3D" if full else "high-quality 3D"
+            raise HTTPException(404, f"{what} not available (status: {status})")
+        return FileResponse(path, media_type="application/octet-stream",
+                            headers={"Cache-Control": "private, max-age=86400"})
+
+    @app.get("/api/inspections/{job_id}/recon3d/splat.ply")
+    def get_splat_ply(job_id: str) -> FileResponse:
+        """High-quality Gaussian splats (standard 3DGS .ply, cropped to the car box when the crop succeeded) when
+        recon3d_hq.status is done; else 404."""
+        return _splat(job_id, full=False)
+
+    @app.get("/api/inspections/{job_id}/recon3d/splat_full.ply")
+    def get_splat_full_ply(job_id: str) -> FileResponse:
+        """The uncropped splats (car + background) when a car crop is served as splat.ply; else 404."""
+        return _splat(job_id, full=True)
 
     def _body_mask(job_id: str, frame: str, extra: dict[str, Any]) -> Path | None:
         explicit = extra.get("body_masks")

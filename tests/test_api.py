@@ -7,6 +7,7 @@ on its own. Overpass is mocked; nothing here touches the network.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import sys
 import threading
@@ -23,7 +24,7 @@ from fastapi.testclient import TestClient
 
 from avtopassport.api import jobs as jobs_mod
 from avtopassport.api.app import create_app
-from avtopassport.api.jobs import Backends, JobManager, Settings
+from avtopassport.api.jobs import Backends, JobManager, Settings, inspection_overrides, read_view
 from avtopassport.api.shops import OVERPASS_ENDPOINTS, ShopFinder
 from avtopassport.schema import DamageFinding, InspectionResult
 
@@ -562,3 +563,136 @@ def test_real_passport_and_tryon_modules_end_to_end(tmp_path: Path) -> None:
         r = c.get(f"/api/inspections/{second['id']}/tryon", params={"colour": pal[0]["hex"].lstrip("#")})
         assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg"
         assert (tmp_path / "data" / "passports.sqlite").is_file()
+
+
+# --------------------------------------------------------------------------------------------- 3D view + HQ splats
+
+def _client_with(tmp_path: Path, world: World, settings: dict[str, Any] | None = None,
+                 **backend_overrides: Any) -> TestClient:
+    s = Settings(data_dir=tmp_path / "data", device="cpu", warmup=False, **(settings or {}))
+    backends = dataclasses.replace(world.backends(), **backend_overrides)
+    app = create_app(settings=s, backends=backends,
+                     shops=ShopFinder(s.data_dir / "cache", fetch=world.fetch), web_dir=tmp_path / "web")
+    return TestClient(app)
+
+
+CAMERAS_VIEW = {"center": [0.1, 0.2, 0.3], "up": [0.0, -1.0, 0.0], "forward0": [1.0, 0.0, 0.0],
+                "walkaround_radius": 2.5}
+
+
+def test_read_view_from_cameras_json(tmp_path: Path) -> None:
+    assert read_view(tmp_path) is None  # no cameras.json
+    (tmp_path / "cameras.json").write_text(json.dumps({**CAMERAS_VIEW, "cameras": []}))
+    assert read_view(tmp_path) == {"center": [0.1, 0.2, 0.3], "up": [0.0, -1.0, 0.0], "forward0": [1.0, 0.0, 0.0],
+                                   "radius": 2.5}
+    (tmp_path / "cameras.json").write_text(json.dumps({**CAMERAS_VIEW, "walkaround_radius": 0}))
+    assert read_view(tmp_path) is None
+    (tmp_path / "cameras.json").write_text(json.dumps({**CAMERAS_VIEW, "up": [0, 1]}))
+    assert read_view(tmp_path) is None
+
+
+def test_recon3d_done_exposes_view(tmp_path: Path, world: World) -> None:
+    world.recon_ok = True
+    stub = world.backends().recon3d_build
+
+    def build_with_cameras(frames_dir: Path, out_dir: Path, device: str, masks_dir: Path | None) -> dict[str, Any]:
+        res = stub(frames_dir, out_dir, device, masks_dir)
+        (Path(out_dir) / "cameras.json").write_text(json.dumps(CAMERAS_VIEW))
+        return res
+
+    with _client_with(tmp_path, world, recon3d_build=build_with_cameras) as c:
+        st = run_inspection(c)
+        assert st["recon3d"]["status"] == "done"
+        assert st["recon3d"]["view"] == {"center": [0.1, 0.2, 0.3], "up": [0.0, -1.0, 0.0],
+                                         "forward0": [1.0, 0.0, 0.0], "radius": 2.5}
+        assert st["recon3d_hq"]["status"] == "disabled"  # AVTO_HQ3D not set: nothing for the web page to show
+        assert c.get(f"/api/inspections/{st['id']}/recon3d/splat.ply").status_code == 404
+
+
+def test_hq_stage_done_serves_splat(tmp_path: Path, world: World) -> None:
+    world.recon_ok = True
+    calls: list[tuple[Path, int, Any, Any]] = []
+
+    def hq_build(frames_dir: Path, out_dir: Path, steps: int, pins2d: Any, masks_dir: Path | None) -> dict[str, Any]:
+        calls.append((Path(frames_dir), steps, pins2d, masks_dir))
+        Path(out_dir).mkdir(parents=True, exist_ok=True)
+        (Path(out_dir) / "splat.ply").write_bytes(b"ply\nformat binary_little_endian 1.0\nend_header\nSPLAT")
+        (Path(out_dir) / "splat_car.ply").write_bytes(b"ply\nformat binary_little_endian 1.0\nend_header\nCAR")
+        report = {"ok": True, "steps": steps, "n_images": 6, "n_registered": 6, "mean_reprojection_error_px": 0.5,
+                  "psnr": None, "seconds": {"sfm": 1.0, "brush": 2.0, "total": 3.0},
+                  "view": {"center": [0, 0, 0], "up": [0, 1, 0], "forward0": [1, 0, 0], "radius": 3.0},
+                  "pins": [{"xyz": [0.0, 0.5, 1.0], "damage": "scratch", "part": "front_bumper", "score": 0.8}],
+                  "crop": {"ok": True, "n_splats": 10, "n_splats_car": 7}}
+        (Path(out_dir) / "hq_report.json").write_text(json.dumps(report))
+        return {"ok": True, "error": None, "splat": str(Path(out_dir) / "splat_car.ply"),
+                "splat_full": str(Path(out_dir) / "splat.ply"), "report": report, "seconds_wall": 3.0,
+                "out_dir": str(out_dir)}
+
+    with _client_with(tmp_path, world, {"enable_hq3d": True, "hq3d_steps": 123},
+                      hq_available=lambda: (True, "stub GPU"), hq_build=hq_build) as c:
+        assert c.get("/api/health").json()["hq3d_enabled"] is True
+        st = run_inspection(c)
+        hq = st["recon3d_hq"]
+        assert hq["status"] == "done" and hq["error"] is None and hq["seconds"] == 3.0
+        assert hq["splat"] == f"/api/inspections/{st['id']}/recon3d/splat.ply" and "_splat_path" not in hq
+        assert hq["report"]["n_registered"] == 6 and hq["view"]["radius"] == 3.0 and hq["pins"][0]["part"] == "front_bumper"
+        assert hq["previous_run"] is None and hq["n_frames"] == 6  # first HQ build on this server
+        assert calls and calls[0][1] == 123 and len(calls[0][2]) == 1
+        assert calls[0][0] == _jobs(c).frames_dir(st["id"])  # all of the inspection's blurred frames
+        assert calls[0][3] == _jobs(c).masks_dir(st["id"])  # car masks for the crop / car PSNR
+        assert hq["cropped"] is True and "_splat_full_path" not in hq
+        r = c.get(hq["splat"])
+        assert r.status_code == 200 and r.content.endswith(b"CAR")  # the car crop is the served model
+        r = c.get(hq["splat_full"])
+        assert hq["splat_full"].endswith("/recon3d/splat_full.ply") and r.content.endswith(b"SPLAT")
+        # the next inspection reports the measured duration of this one while it waits
+        last = _jobs(c).last_hq_run()
+        assert last is not None and last["seconds_total"] == 3.0 and last["steps"] == 123
+
+
+def test_hq_stage_unavailable_or_failing(tmp_path: Path, world: World) -> None:
+    world.recon_ok = True
+    with _client_with(tmp_path / "a", world, {"enable_hq3d": True},
+                      hq_available=lambda: (False, "no Vulkan GPU")) as c:
+        st = run_inspection(c)
+        assert st["recon3d_hq"]["status"] == "unavailable" and st["recon3d_hq"]["error"] == "no Vulkan GPU"
+
+    def failing(frames_dir: Path, out_dir: Path, steps: int, pins2d: Any, masks_dir: Any) -> dict[str, Any]:
+        return {"ok": False, "error": "Brush failed (exit 1)", "splat": None, "report": {"ok": False},
+                "seconds_wall": 0.2, "out_dir": str(out_dir)}
+
+    with _client_with(tmp_path / "b", world, {"enable_hq3d": True},
+                      hq_available=lambda: (True, "stub GPU"), hq_build=failing) as c:
+        st = run_inspection(c)
+        assert st["recon3d_hq"]["status"] == "error" and "Brush failed" in st["recon3d_hq"]["error"]
+        assert c.get(f"/api/inspections/{st['id']}/recon3d/splat.ply").status_code == 404
+        assert c.get(f"/api/inspections/{st['id']}/recon3d/splat_full.ply").status_code == 404
+
+
+def test_hq_interrupted_by_restart_is_not_rerun(tmp_path: Path, world: World) -> None:
+    s = Settings(data_dir=tmp_path / "data", device="cpu", warmup=False, enable_hq3d=True)
+    jm = JobManager(s, world.backends())
+    job_id = jm.new_job_id()
+    jm.job_dir(job_id).mkdir(parents=True)
+    state = {"id": job_id, "status": "done", "recon3d": {"status": "done"},
+             "recon3d_hq": {"status": "running", "splat": None}}
+    (jm.job_dir(job_id) / "state.json").write_text(json.dumps(state))
+    jm.start()
+    try:
+        hq = jm.get(job_id)["recon3d_hq"]
+        assert hq["status"] == "error" and "restart" in hq["error"]
+        assert jm.queue_sizes()["recon3d_hq"] == 0
+    finally:
+        jm.stop()
+
+
+def test_inspection_overrides_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("AVTO_FPS", raising=False)
+    monkeypatch.delenv("AVTO_MAX_FRAMES", raising=False)
+    assert inspection_overrides() == {}
+    monkeypatch.setenv("AVTO_FPS", "4")
+    monkeypatch.setenv("AVTO_MAX_FRAMES", "160")
+    assert inspection_overrides() == {"fps": 4.0, "max_frames": 160}
+    monkeypatch.setenv("AVTO_FPS", "fast")
+    monkeypatch.setenv("AVTO_MAX_FRAMES", "-3")
+    assert inspection_overrides() == {}
