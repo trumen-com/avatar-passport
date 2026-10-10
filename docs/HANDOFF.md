@@ -26,6 +26,17 @@ Read this first. Kept up to date during the night; see `git log` for the exact o
   - Two uploads of the same video correctly give "no new damage since the last inspection".
 - **3D, new scope:** a fast DA3 point cloud in the app, and a high-quality path that adds COLMAP calibration and Gaussian
   splats (Brush) on the GPU. See `docs/decisions/004-3d-reconstruction.md`.
+- **Repeat-inspection diff:**
+  - Changes are judged only on confirmed findings: score >= 0.5 and seen in at least 2 frames. The uncalibrated models
+    produce different low-confidence false positives on every run, and those were showing up as phantom "new damage".
+  - Low-confidence differences are listed separately as "possible changes - please verify".
+- **High-quality 3D, measured on this laptop:** 115 frames at 4 fps, COLMAP calibration (0.585 px), and 30k-step Gaussian
+  splats on the GPU, about 29 min. Held-out views of the car reach 24.5 dB PSNR. The splats are cropped to the car.
+  To turn this on in the app, start the server with
+  `AVTO_HQ3D=1 AVTO_FPS=4 AVTO_MAX_FRAMES=120` (see `docs/research/recon3d_smoke_results.md`). It needs the Brush binary
+  in `tools/`; `scripts/recon3d_hq.py` explains where to get it.
+- **Docker:** not built, because docker is not on this laptop. Both of the image's Python environments were installed
+  from scratch in clean venvs, and the full test suite passes there on CPU only.
 - **Phase 2 tooling:** see `docs/research/labelling_guide.md` and `scripts/eval.py`. It produces no numbers until
   labelled data exists.
 - **Pitch docs** (`docs/pitch/`): cost model, ROI model (illustrative, every assumption listed), deck outline, Q&A prep.
