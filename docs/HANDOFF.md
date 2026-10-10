@@ -81,6 +81,6 @@ Read this first. Kept up to date during the night; see `git log` for the exact o
   - Two of the three damage models were trained on CarDD (non-commercial), and the third's training data is unknown,
     so all are demo/research only.
   - The Ultralytics stack is AGPL. See `DATA_SOURCES.md`.
-- **History on the public Space:** the app keeps its passports in SQLite under `AVTO_DATA_DIR`, and a Space restart wipes them. The snapshot to a private HF dataset (ADR 003) is not implemented, so run repeat-inspection demos within one server session.
+- **History on the public Space:** a Space restart wipes the local disk. To keep passports, set the Space variable `AVTO_SNAPSHOT_REPO=<user>/avtopassport-data` and the secret `HF_TOKEN`. The app then snapshots SQLite and job reports to that private dataset and restores them at startup (README, "Persistence on Hugging Face"). Frames and 3D models are not kept, and anything written after the last snapshot (every 5 min, and about 30 s after each inspection) is lost on a restart. Delete the dataset after the demo.
 - **Privacy:** CAR8's front plate is seen almost edge-on, so no detector finds it. The auditor could read no
   characters, so it is left as is.
