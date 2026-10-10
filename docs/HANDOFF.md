@@ -48,7 +48,7 @@ Read this first. Kept up to date during the night; see `git log` for the exact o
 
 ## What you need to do (in this order)
 
-1. **Look at the app on the laptop and your phone.** Start it with the command in the README. Open
+1. **Look at the app on the laptop and your phone.** It was left running on port 8000, with high-quality 3D on. If the laptop restarted, start it again with the README command. Open
    `http://192.168.1.11:8000` from a phone on the same Wi-Fi.
 2. **GitHub:** create a repository, then run `git remote add origin <url>` and `git push -u origin main`. All commits are
    local. Then set `REPO_URL` in `web/app.js` for the AGPL source link.
@@ -81,5 +81,6 @@ Read this first. Kept up to date during the night; see `git log` for the exact o
   - Two of the three damage models were trained on CarDD (non-commercial), and the third's training data is unknown,
     so all are demo/research only.
   - The Ultralytics stack is AGPL. See `DATA_SOURCES.md`.
+- **History on the public Space:** the app keeps its passports in SQLite under `AVTO_DATA_DIR`, and a Space restart wipes them. The snapshot to a private HF dataset (ADR 003) is not implemented, so run repeat-inspection demos within one server session.
 - **Privacy:** CAR8's front plate is seen almost edge-on, so no detector finds it. The auditor could read no
   characters, so it is left as is.

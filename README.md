@@ -20,7 +20,7 @@ It is a hackathon prototype for dealer after-sales: vehicle intake and trade-in 
 | Phase 2: test-set evaluation | Tooling ready; needs the team's labelled photos | `scripts/eval.py`, `docs/research/labelling_guide.md`, `docs/research/evaluation.md` |
 | Phase 3: pipeline package | Done | `src/avtopassport/` |
 | Phase 4: app | Runs locally (laptop + phones on the same Wi-Fi); public deploy waits for the HF PRO decision | `src/avtopassport/api/`, `web/`, `Dockerfile`, `.github/workflows/deploy.yml` |
-| 3D model (scope change 2026-10-11) | Fast DA3 point cloud in the app; high-quality COLMAP + Gaussian splats on a GPU | `src/avtopassport/recon3d/`, `scripts/recon3d_hq.py`, `docs/decisions/004-3d-reconstruction.md` |
+| 3D model (scope change 2026-10-11) | Done. Fast DA3 point cloud in the app (CPU or GPU). High-quality COLMAP + Gaussian splats inside the app with a GPU worker; held-out PSNR about 25 dB | `src/avtopassport/recon3d/`, `docs/research/recon3d_smoke_results.md`, `docs/decisions/004-3d-reconstruction.md` |
 
 **Phase 1 smoke test.** `notebooks/01_smoke_test_colab.ipynb` runs the candidate damage, parts, privacy and VIN-OCR models on our own media. We run it in three places:
 - the dev laptop's NVIDIA RTX 5050 Laptop GPU
