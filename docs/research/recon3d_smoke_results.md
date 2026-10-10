@@ -19,6 +19,7 @@ Input is only the anonymised frames: `data/processed/frames` (29 frames at 1 fps
 | R3D-cpu16 | cpu | DA3-BASE | 29 | 504 | 8 | 0.604 | 16.808 | 2.389 | 400000 |  | outputs/recon3d/R3D-cpu16/results.json |
 | R3D-cpu2-pinned | cpu | DA3-BASE | 29 | 504 | 2 | 1.995 | 92.101 | 2.491 | 400000 |  | outputs/recon3d/R3D-cpu2-pinned/results.json |
 | R3D-gpu | cuda | DA3-BASE | 29 | 504 | 8 | 0.993 | 1.527 | 2.542 | 400000 | 2672.8 | outputs/recon3d/R3D-gpu/results.json |
+| app-cpu2-pinned | cpu | DA3-BASE | 30 | 504 | 2 | 0.593 | 98.172 |  | 763591 |  | outputs/recon3d/app-cpu2-pinned/result.json |
 | module-gpu | cuda | DA3-BASE | 29 | 504 | 8 | 1.57 | 2.167 |  | 1126858 | 2673.7 | outputs/recon3d/module-gpu/result.json |
 | qc-c60-e02 | cuda | DA3-BASE | 29 | 504 | 8 | 0.916 | 1.874 |  | 760217 | 2673.7 | outputs/recon3d/qc-c60-e02/result.json |
 | qc-e015 | cuda | DA3-BASE | 29 | 504 | 8 | 1.322 | 1.875 |  | 1024271 | 2673.7 | outputs/recon3d/qc-e015/result.json |
@@ -56,6 +57,7 @@ the app's run folders under `var/` (gitignored).
 <!-- BEGIN:app_hq -->
 | job | run | frames | registered | reproj_px | sfm_s | brush_s | psnr_whole_db | psnr_car_db | note | source |
 |---|---|---|---|---|---|---|---|---|---|---|
+| 64dd7f97 | app pipeline | 115 | 115 | 0.526 | 183.1 | 1959.0 | 25.095 | 24.79 |  | var/jobs/64dd7f97417e4c18929dcc1e0563a210/recon3d_hq/hq_report.json |
 | 74a4015a | app pipeline | 115 | 115 | 0.525 | 189.5 | 613.8 | 16.362 | 13.129 | before fix 7c265bb: trained on a degenerate side-model | var/jobs/74a4015aec944e0caea812d62977ed2e/recon3d_hq/hq_report.json |
 | 74a4015a | CLI re-train after fix | 115 | 115 |  |  | 1928.3 | 25.212 | 24.884 | same SfM model, after fix 7c265bb | var/jobs/74a4015aec944e0caea812d62977ed2e/recon3d_hq/brush_report_splat_fixed.json |
 <!-- END:app_hq -->
