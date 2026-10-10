@@ -48,6 +48,18 @@ it was not trained on.
 | car_30k | 0 | 30000 | 1735.1 | 1000000 | 46.3 | held-out mean 12.66 dB (whole image), 24.48 dB (car mask), 12 views; outputs/recon3d/hq/heldout_psnr.json | outputs/recon3d/hq/brush_report_car_30k.json |
 <!-- END:brush -->
 
+## High-quality path inside the app (job runs)
+
+Runs made by the app's GPU job (`AVTO_HQ3D=1`, frames saved by the inspection at 720x1280, about 4 fps). Sources are
+the app's run folders under `var/` (gitignored).
+
+<!-- BEGIN:app_hq -->
+| job | run | frames | registered | reproj_px | sfm_s | brush_s | psnr_whole_db | psnr_car_db | note | source |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 74a4015a | app pipeline | 115 | 115 | 0.525 | 189.5 | 613.8 | 16.362 | 13.129 | before fix 7c265bb: trained on a degenerate side-model | var/jobs/74a4015aec944e0caea812d62977ed2e/recon3d_hq/hq_report.json |
+| 74a4015a | CLI re-train after fix | 115 | 115 |  |  | 1928.3 | 25.212 | 24.884 | same SfM model, after fix 7c265bb | var/jobs/74a4015aec944e0caea812d62977ed2e/recon3d_hq/brush_report_splat_fixed.json |
+<!-- END:app_hq -->
+
 ## Observations
 
 1. **Speed.** DA3 runs on the CPU, so the 3D model can be built on the CPU-only deploy target. It is slow, but it works,

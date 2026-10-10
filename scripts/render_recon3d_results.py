@@ -82,7 +82,40 @@ def blocks() -> dict[str, str]:
             b["psnr"] = (f"held-out mean {held['mean_psnr_db']} dB (whole image), {held['mean_psnr_car_db']} dB "
                          f"(car mask), {held['n_heldout']} views; outputs/recon3d/hq/heldout_psnr.json")
     out["brush"] = table(brush, ["name", "exit", "steps", "seconds", "max_splats", "ply_mb", "psnr", "source"])
+    out["app_hq"] = table(app_hq_rows(), ["job", "run", "frames", "registered", "reproj_px", "sfm_s", "brush_s",
+                                         "psnr_whole_db", "psnr_car_db", "note", "source"])
     return out
+
+
+FIX_COMMIT = "7c265bb"  # removed the mapper's extra COLMAP models (Brush had trained on a 2-image side-model)
+
+
+def app_hq_rows() -> list[dict]:
+    """HQ 3D builds made by the app (var/jobs/<job>/recon3d_hq): the pipeline's hq_report.json and CLI re-runs."""
+    var = REPO / "var" / "jobs"
+    rows: list[dict] = []
+    for d in sorted(var.glob("*/recon3d_hq")) if var.is_dir() else []:
+        job = d.parent.name[:8]
+        rep = _load(d / "hq_report.json")
+        if rep and rep.get("seconds"):
+            broken = (rep.get("psnr_car") or 99) < 15 and (rep.get("crop") or {}).get("n_splats", 10**9) < 50_000
+            rows.append({"job": job, "run": "app pipeline", "frames": rep.get("n_images"),
+                         "registered": rep.get("n_registered"),
+                         "reproj_px": round(rep.get("mean_reprojection_error_px") or float("nan"), 3),
+                         "sfm_s": rep["seconds"].get("sfm"), "brush_s": rep["seconds"].get("brush"),
+                         "psnr_whole_db": rep.get("psnr"), "psnr_car_db": rep.get("psnr_car"),
+                         "note": f"before fix {FIX_COMMIT}: trained on a degenerate side-model" if broken else "",
+                         "source": f"var/jobs/{d.parent.name}/recon3d_hq/hq_report.json"})
+        fixed = _load(d / "brush_report_splat_fixed.json")
+        held = _load(d / "heldout_psnr_splat_fixed.json")
+        if fixed:
+            rows.append({"job": job, "run": "CLI re-train after fix", "frames": (rep or {}).get("n_images"),
+                         "registered": (rep or {}).get("n_registered"), "reproj_px": "",
+                         "sfm_s": "", "brush_s": fixed.get("seconds"),
+                         "psnr_whole_db": (held or {}).get("mean_db", fixed.get("psnr")),
+                         "psnr_car_db": (held or {}).get("mean_car_db"), "note": f"same SfM model, after fix {FIX_COMMIT}",
+                         "source": f"var/jobs/{d.parent.name}/recon3d_hq/brush_report_splat_fixed.json"})
+    return rows
 
 
 def render(text: str, new: dict[str, str]) -> str:
