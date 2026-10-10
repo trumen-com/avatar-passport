@@ -1,0 +1,61 @@
+# Deploy this repo to a Hugging Face Docker Space.
+#
+# MANUAL ONLY (workflow_dispatch): nothing deploys until the user decides. A Docker Space needs a paid
+# Hugging Face plan - HF PRO, $9/month for a personal account (ADR 003,
+# docs/decisions/003-deploy-hf-docker-local-first.md). Buy it only after the local end-to-end test passes.
+#
+# One-time setup (repo Settings -> Secrets and variables -> Actions):
+#   HF_TOKEN  - a Hugging Face access token with write access to the Space
+#   HF_SPACE  - the Space id, e.g. "<hf-user>/avtopassport"
+# The Space is built from the Dockerfile in the repo root (port 7860, uid 1000). The Space README needs the
+# front matter `sdk: docker` and `app_port: 7860`.
+#
+# After the hackathon deadline only the submitted commit may be redeployed: run this workflow on that commit
+# (the "Use workflow from" ref) and check /api/version on the Space shows the same SHA.
+
+name: Deploy to Hugging Face Space
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "deploy" to confirm (needs HF PRO, see ADR 003)'
+        required: true
+        default: ""
+
+concurrency:
+  group: hf-space-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    if: ${{ github.event.inputs.confirm == 'deploy' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ secrets.HF_SPACE }}
+        run: |
+          test -n "$HF_TOKEN" || { echo "::error::secret HF_TOKEN is not set"; exit 1; }
+          test -n "$HF_SPACE" || { echo "::error::secret HF_SPACE is not set (e.g. user/avtopassport)"; exit 1; }
+          echo "Deploying commit ${GITHUB_SHA} to space ${HF_SPACE}"
+
+      - uses: actions/checkout@v4
+
+      # Record the deployed commit for /api/version (AGPL-3.0 section 13 source link). The app reads
+      # AVTO_COMMIT_SHA or, failing that, this file.
+      - name: Write COMMIT_SHA
+        run: echo "${GITHUB_SHA}" > COMMIT_SHA
+
+      - name: Sync to the Hugging Face Space
+        uses: huggingface/hub-sync@v0.3.0
+        with:
+          github_repo_id: ${{ github.repository }}
+          huggingface_repo_id: ${{ secrets.HF_SPACE }}
+          hf_token: ${{ secrets.HF_TOKEN }}
+          repo_type: space
+          space_sdk: docker

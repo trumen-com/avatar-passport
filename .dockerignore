@@ -1,0 +1,49 @@
+# Keep the build context small and free of personal media. Models are downloaded inside the image
+# (scripts/download_models.py), so local weights are never copied.
+
+# environments and caches
+.venv/
+.venv-3d/
+**/__pycache__/
+**/*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+.mypy_cache/
+.ruff_cache/
+
+# VCS / editor / tooling
+.git/
+.github/
+.claude/
+.vscode/
+.idea/
+.DS_Store
+.env
+.env.*
+
+# raw / personal media: never in an image (plates, faces)
+data/raw/
+data/local_testset/
+*.[Hh][Ee][Ii][Cc]
+*.[Hh][Ee][Ii][Ff]
+*.[Mm][Oo][Vv]
+*.[Mm][Pp]4
+*.[Dd][Nn][Gg]
+
+# weights and run outputs (downloaded / produced inside the container)
+models/
+outputs/
+runs/
+weights/
+*.pt
+*.onnx
+*.engine
+
+# app runtime data (jobs, uploads, SQLite)
+var/
+
+# not needed at runtime
+notebooks/
+docs/assets/
+tests/
