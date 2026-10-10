@@ -55,8 +55,7 @@ Read this first. Kept up to date during the night; see `git log` for the exact o
 3. **Colab run** of `notebooks/01_smoke_test_colab.ipynb`. The brief requires it. Paste the generated tables back with
    `scripts/render_results.py`.
 4. **HF PRO decision** ($9/month) once you are happy with the local app. Then create the Docker Space, add the
-   `HF_TOKEN` / `HF_SPACE` secrets and run the manual `deploy.yml` workflow. Check the hub-sync input names against its
-   README first; they were not verified offline.
+   `HF_TOKEN` / `HF_SPACE` secrets and run the manual `deploy.yml` workflow. The hub-sync inputs were checked against the action's v0.3.0 `action.yml` on 2026-10-11.
 5. **VIN ground truth:** put the true VIN in `data/raw/vin/ground_truth.csv`, which is gitignored and never committed.
 6. **Test set (Phase 2):**
    - Photograph damaged and undamaged cars across the day, night and wet slices.
