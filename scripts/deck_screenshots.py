@@ -69,7 +69,7 @@ def main(argv: list[str] | None = None) -> int:
                                                  "args": []})["value"]:
                 break
             time.sleep(1)
-        time.sleep(10)  # let the 3D viewers load
+        time.sleep(25)  # let both 3D viewers (point cloud + 28 MB splat) load
         masked = m.cmd("WebDriver:ExecuteScript", {"script": MASK_JS, "args": []})["value"]
         print(f"masked {masked} VIN strings")
         for name, sel in SECTIONS:

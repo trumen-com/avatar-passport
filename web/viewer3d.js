@@ -270,7 +270,8 @@ export function createViewer(container, { plyUrl, splatUrl, view = null, pins = 
           const halfMin = Math.min(halfV, Math.atan(Math.tan(halfV) * camera.aspect));
           fitDist = extent / Math.sin(halfMin); // sphere around the car inside the narrower field of view
         }
-        const eyeDist = Math.max(Math.hypot(1.2, 0.5) * v.radius, fitDist);
+        // Frame the car itself: the walkaround radius (where the phone was) leaves the car small on screen.
+        const eyeDist = fitDist > 0 ? Math.max(fitDist, 0.35 * v.radius) : Math.hypot(1.2, 0.5) * v.radius;
         camera.position.copy(dir).multiplyScalar(eyeDist);
         dist = Math.max(v.radius, extent);
       } else {
