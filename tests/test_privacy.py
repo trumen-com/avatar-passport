@@ -559,15 +559,26 @@ def test_tiled_rows_map_tile_boxes_back_to_the_full_image() -> None:
 def test_person_head_detector_returns_the_head_band_as_a_face() -> None:
     model = FakePartsModel({0: "person", 1: "bicycle"})  # returns a class-1 box and a class-0 box (0,0,100,100)
     det = make_person_head_detector(model, device="cpu")
-    boxes = det(noise(120, 160))
+    boxes = det(noise(120, 300))
     assert len(boxes) == 1
     b = boxes[0]
     # 100x100 person box is not taller than 2x its width -> upper-body rule: top half, widened by 10 % per side
     assert (b.kind, b.source) == ("face", "coco:person-head")
     assert (b.x1, b.y1, b.x2, b.y2) == pytest.approx((0.0, 0.0, 110.0, 50.0))
     assert model.calls[0]["classes"] == [0]
-    out, rep = Anonymizer.from_detectors([det], pad=0.0).anonymize(noise(120, 160))
+    out, rep = Anonymizer.from_detectors([det], pad=0.0).anonymize(noise(120, 300))
     assert rep.ok and rep.n_faces == 1 and rep.passes == {"coco:person-head": 1}
+
+
+def test_person_head_detector_ignores_a_hand_across_the_frame() -> None:
+    class HandModel(FakePartsModel):
+        def predict(self, img: np.ndarray, **kw: object) -> list[_Result]:
+            # wide, flat 'person' at the bottom (finger near the lens) and a real standing person
+            return [_Result([[3, 1171, 1080, 1920, 0.71, 0], [783, 248, 885, 475, 0.55, 0]])]
+
+    det = make_person_head_detector(HandModel({0: "person"}), device="cpu")
+    boxes = det(np.zeros((1920, 1080, 3), np.uint8))
+    assert len(boxes) == 1 and boxes[0].x1 < 783 and boxes[0].y1 == 248
 
 
 def test_person_head_detector_requires_a_person_class() -> None:

@@ -116,6 +116,11 @@ PLATE_MAX_TALL = 1.3
 HEAD_FRAC_FULL_BODY = 0.3      # person box taller than 2x its width: top 30 % is head and neck
 HEAD_FRAC_PARTIAL = 0.5        # otherwise (upper body only): top half
 HEAD_WIDEN = 0.1               # widen the head band by 10 % of the box width on each side
+# Not a person: COCO also calls a hand or finger next to the lens a 'person' (wide box across the frame
+# bottom, seen in the smoke-test video). Such boxes are ignored: wider than PERSON_MAX_WIDTH_FRAC of the
+# image, or flatter than PERSON_MIN_ASPECT (h / w). A real person that close is a large face for YuNet.
+PERSON_MAX_WIDTH_FRAC = 0.6
+PERSON_MIN_ASPECT = 0.9
 
 
 # --------------------------------------------------------------------------- pixelation
@@ -351,15 +356,19 @@ class _PersonHeadDetector:
             if c not in self.person_ids:
                 continue
             w, h = x2 - x1, y2 - y1
+            if w > PERSON_MAX_WIDTH_FRAC * w_img or h < PERSON_MIN_ASPECT * w:
+                continue  # hand/finger near the lens, not a person
             band = h * (HEAD_FRAC_FULL_BODY if h >= 2 * w else HEAD_FRAC_PARTIAL)
             out.append(Box(max(0.0, x1 - HEAD_WIDEN * w), max(0.0, y1), min(float(w_img), x2 + HEAD_WIDEN * w),
                            min(float(h_img), y1 + band), s, "face", "coco:person-head"))
         return out
 
 
-def make_person_head_detector(coco_model: Any, *, device: str, imgsz: int = 640, conf: float = 0.25) -> Detector:
+def make_person_head_detector(coco_model: Any, *, device: str, imgsz: int = 1280, conf: float = 0.25) -> Detector:
     """Backstop for faces: the head band of every COCO 'person' box, as Box(kind="face",
-    source="coco:person-head"). Raises PrivacyUnavailable if the model has no 'person' class."""
+    source="coco:person-head"). Raises PrivacyUnavailable if the model has no 'person' class.
+    imgsz is 1280 by default (uncalibrated): at 640 the smoke-test audit found a ~10 px bystander and a person
+    reflected in door glass missed; at 1280 both were detected."""
     names = getattr(coco_model, "names", None)
     if isinstance(names, (list, tuple)):
         names = dict(enumerate(names))
