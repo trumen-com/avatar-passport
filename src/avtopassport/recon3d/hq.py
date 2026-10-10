@@ -214,6 +214,10 @@ def run_sfm(dataset: Path, *, camera_model: str = "SIMPLE_RADIAL", max_image_siz
         shutil.rmtree(final)
     final.mkdir(parents=True)
     rec.write(final)
+    # Brush scans the dataset folder for COLMAP models. The mapper's raw output (work/sparse/<k>) can hold extra,
+    # degenerate side-models (seen: a 2-image model next to the 115-image one); Brush picked it up and trained on two
+    # views. Keep only the selected model in dataset/sparse/0.
+    shutil.rmtree(work / "sparse", ignore_errors=True)
     cam = next(iter(rec.cameras.values()))
 
     report = {
