@@ -1,3 +1,11 @@
+---
+title: AvtoPassport
+sdk: docker
+app_port: 7860
+license: agpl-3.0
+short_description: Phone walkaround video to a verified car condition passport
+---
+
 # AvtoPassport
 
 AvtoPassport turns a phone walkaround video of a car, plus a photo of its VIN plate, into a digital condition passport tied to the VIN. The passport holds a decoded VIN card, a damage list by car part with repair action and cost, and a comparison with earlier inspections of the same car.
