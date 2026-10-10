@@ -179,7 +179,7 @@ These feed `data/reference/repair_prices.csv` (built by `scripts/build_repair_pr
 | https://www.toyota-centralasia.com/ru/dealers | Toyota dealer list (research notes) | Site terms not reviewed |
 | https://t.me/toyota_rm | Toyota dealer channel (research notes) | Public channel posts |
 
-### Maps and timestamps (Phase 4, not used yet)
+### Maps and timestamps (shops lookup used by the app since 2026-10-11; timestamps not used yet)
 
 | Source | Planned use | Terms |
 |---|---|---|
@@ -195,6 +195,34 @@ These feed `data/reference/repair_prices.csv` (built by `scripts/build_repair_pr
 - **PyTorch wheel index:** https://download.pytorch.org/whl/cu130
 - **Package versions:** PyPI project pages for the packages listed above
 - **HDR video handling in `src/avtopassport/pipeline/frames.py`:** SMPTE ST 2084 (PQ) constants and the 203 cd/m2 reference white reported in ITU-R BT.2408 (https://www.itu.int/pub/R-REP-BT.2408)
+
+## Added on 2026-10-11 (Phase 3/4 and 3D)
+
+### Web app and passport report (main venv, `requirements.txt`)
+
+| Component | Version | Licence | Link | Use |
+|---|---|---|---|---|
+| FastAPI | 0.143.0 | MIT | https://pypi.org/project/fastapi/ | API |
+| uvicorn[standard] | 0.54.0 | BSD-3-Clause | https://pypi.org/project/uvicorn/ | ASGI server |
+| python-multipart | 0.0.32 | Apache-2.0 | https://pypi.org/project/python-multipart/ | uploads |
+| httpx | 0.28.1 | BSD-3-Clause | https://pypi.org/project/httpx/ | tests (FastAPI TestClient) |
+| reportlab | 5.0.1 | BSD | https://pypi.org/project/reportlab/ | PDF passport |
+| DejaVu Sans font (system package `fonts-dejavu-core`) | system | Bitstream Vera / DejaVu font licence (free, redistributable) | https://dejavu-fonts.github.io/License.html | Cyrillic text in the PDF |
+| three.js | 0.186.1 (CDN, jsdelivr) | MIT | https://github.com/mrdoob/three.js/blob/dev/LICENSE | 3D point-cloud viewer |
+| Spark (`@sparkjsdev/spark`) | 2.3.1 (CDN, jsdelivr) | MIT | https://github.com/sparkjsdev/spark | Gaussian-splat viewer (high-quality 3D, when available) |
+
+### 3D reconstruction (separate venv `.venv-3d`, see `docs/research/recon3d_candidates.md`)
+
+| Component | Version | Licence | Link | Flags / use |
+|---|---|---|---|---|
+| Depth Anything 3 (code, PyPI `depth-anything-3`) | 0.1.1 | Apache-2.0 | https://github.com/ByteDance-Seed/Depth-Anything-3 | fast 3D point cloud from anonymised frames |
+| DA3-BASE weights `depth-anything/DA3-BASE` @f4a6c9b3 | — | Apache-2.0 (HF card) | https://huggingface.co/depth-anything/DA3-BASE | used. DA3 GIANT / NESTED / LARGE / LARGE-1.1 are CC BY-NC or conflicting and are NOT used |
+| DA3-SMALL weights `depth-anything/DA3-SMALL` @e08cab65 | — | Apache-2.0 (HF card) | https://huggingface.co/depth-anything/DA3-SMALL | optional lighter model |
+| addict (undeclared DA3 dependency) | 2.4.0 | MIT | https://github.com/mewwts/addict | |
+| xformers (pulled in by DA3, falls back without its CUDA extensions here) | 0.0.35 | BSD-3-Clause (repo licence) | https://github.com/facebookresearch/xformers | not required |
+| open3d, moviepy, … (pulled in by DA3, not used by our code) | 0.20.0, 1.0.3 | MIT | https://pypi.org/project/open3d/, https://pypi.org/project/moviepy/ | to be excluded from the Docker 3D env |
+| pycolmap (COLMAP structure-from-motion) | 4.2.1 | BSD-3-Clause | https://github.com/colmap/colmap | calibrated camera poses for high-quality 3D |
+| Brush (Gaussian-splat trainer, release binary v0.3.0, sha256 4f0f9a87…) | 0.3.0 | Apache-2.0 | https://github.com/ArthurBrussee/brush | high-quality 3D on a GPU (Vulkan); downloaded to `tools/` (gitignored) |
 
 ## Our own data
 
