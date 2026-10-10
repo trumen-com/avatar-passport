@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>Registry connector — sandbox · AvtoPassport</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="sandbox.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./">Avto<span>Passport</span></a>
+    <span class="synthetic-badge">SYNTHETIC DEMO DATA</span>
+  </header>
+
+  <main>
+    <section class="card" aria-labelledby="sandbox-title">
+      <h1 id="sandbox-title">Registry connector &mdash; sandbox</h1>
+      <p><span class="synthetic-badge big">SYNTHETIC DEMO DATA</span></p>
+      <div class="synthetic-notice" id="sandbox-notice">
+        <p style="margin:0 0 0.4rem"><strong>Everything on this page is synthetic.</strong>
+          It shows how AvtoPassport would connect to registry, insurer and dealer systems
+          (owners, accidents, insurance claims, mileage). These records are generated with a fixed seed by
+          <code>scripts/generate_synthetic.py</code>; they are not real people, cars or claims.</p>
+        <p style="margin:0">Synthetic records use synthetic VINs only and are <strong>never attached to scanned VINs</strong>
+          or to real AvtoPassport inspections.</p>
+      </div>
+      <p id="api-notice" class="small muted" style="margin-top:0.6rem" hidden></p>
+    </section>
+
+    <section class="card" id="record-card" aria-labelledby="record-title" hidden>
+      <h2 id="record-title">Record</h2>
+      <p><span class="synthetic-badge big">SYNTHETIC DEMO DATA</span></p>
+      <p class="synthetic-notice small">Synthetic record from the registry connector sandbox. Not a real vehicle history; never attached to a scanned VIN.</p>
+      <div id="record-body" role="region" aria-live="polite"></div>
+    </section>
+    <section class="card" aria-labelledby="list-title">
+      <h2 id="list-title">Synthetic VINs <span id="list-count" class="badge"></span></h2>
+      <input id="filter" type="search" placeholder="Filter by VIN, make or model" aria-label="Filter synthetic records" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <p id="list-status" class="small" role="status" style="margin-top:0.6rem"></p>
+      <ul id="registry-list" class="registry-list"></ul>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <a href="./">Back to AvtoPassport</a>
+  </footer>
+</body>
+</html>

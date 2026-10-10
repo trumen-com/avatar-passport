@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#171b22" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="AvtoPassport: a phone walkaround video becomes a verified digital condition passport tied to the car's VIN.">
+  <title>AvtoPassport</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- three.js (MIT) pinned; only loaded when a 3D model is ready (viewer3d.js is imported on demand). -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./">Avto<span>Passport</span></a>
+    <span id="health" class="pill" role="status" aria-live="polite">Checking server&hellip;</span>
+  </header>
+
+  <main>
+    <div id="health-banner" class="banner" role="alert" hidden></div>
+
+    <!-- ========== 1. Capture ========== -->
+    <section id="capture" class="card" aria-labelledby="capture-title">
+      <h1 id="capture-title">New inspection</h1>
+      <p class="lead">Record a 30&ndash;60&nbsp;s walkaround of the car and a close-up of the VIN plate. The passport is built from these files.</p>
+
+      <form id="capture-form" novalidate>
+        <fieldset>
+          <legend>1. Walkaround video <span class="muted small">(required)</span></legend>
+          <div class="file-row">
+            <label class="btn btn-primary file-btn">
+              <input id="video-camera" class="vh" type="file" accept="video/*" capture="environment">
+              Record walkaround
+            </label>
+            <label class="btn file-btn">
+              <input id="video-library" class="vh" type="file" accept="video/*">
+              Choose a video file
+            </label>
+          </div>
+          <p id="video-info" class="file-info muted">No video selected.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>2. VIN plate photo <span class="muted small">(optional)</span></legend>
+          <div class="file-row">
+            <label class="btn file-btn">
+              <input id="vin-camera" class="vh" type="file" accept="image/*" capture="environment">
+              Photograph VIN plate
+            </label>
+            <label class="btn file-btn">
+              <input id="vin-library" class="vh" type="file" accept="image/*">
+              Choose a photo
+            </label>
+          </div>
+          <p id="vin-photo-info" class="file-info muted">No VIN photo selected.</p>
+          <img id="vin-thumb" class="thumb" alt="Selected VIN photo" hidden>
+
+          <label class="field-label" for="vin-text">&hellip;or type the VIN instead</label>
+          <input id="vin-text" class="vin-input" type="text" inputmode="text" autocomplete="off"
+                 autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="24"
+                 placeholder="17 characters (no I, O or Q)" aria-describedby="vin-text-hint">
+          <p id="vin-text-hint" class="file-info muted small">Leave empty to read the VIN from the photo.</p>
+        </fieldset>
+
+        <details class="tips" open>
+          <summary>Capture tips</summary>
+          <ul>
+            <li>Walk slowly all the way around the car, about 2&ndash;3&nbsp;m away.</li>
+            <li>Keep the whole car in frame; hold the phone steady.</li>
+            <li>Daylight works best; avoid filming straight into the sun.</li>
+            <li>VIN photo: close-up, sharp, without glare or reflections.</li>
+            <li>Try to keep people out of the shot. Plates and faces are blurred before anything is stored.</li>
+          </ul>
+        </details>
+
+        <button id="submit-btn" class="btn btn-primary btn-block" type="submit" disabled>Create passport</button>
+        <p id="submit-hint" class="file-info muted small">Select a walkaround video to start.</p>
+      </form>
+
+      <div id="job" class="stack" hidden aria-live="polite">
+        <div class="progress" role="progressbar" aria-label="Upload progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="upload-progress">
+          <div id="upload-bar" class="progress-bar"></div>
+        </div>
+        <p id="upload-text" class="small muted"></p>
+        <p id="job-status" class="small"></p>
+        <ol id="steps" class="steps"></ol>
+        <p id="job-error" class="error" hidden></p>
+        <button id="retry-btn" class="btn" type="button" hidden>Start over</button>
+      </div>
+    </section>
+
+    <!-- ========== 2. Passport ========== -->
+    <section id="passport" class="stack" hidden aria-labelledby="passport-title">
+      <div class="card">
+        <div class="row" style="justify-content: space-between;">
+          <h1 id="passport-title" style="margin:0">Condition passport</h1>
+          <div class="row">
+            <button id="share-btn" class="btn btn-sm" type="button">Share link</button>
+            <a id="pdf-link-top" class="btn btn-sm btn-primary" href="#" download hidden>PDF</a>
+          </div>
+        </div>
+        <p id="share-status" class="small muted" role="status" style="margin:0.4rem 0 0"></p>
+      </div>
+
+      <!-- VIN card -->
+      <div id="vin-card" class="card" aria-labelledby="vin-title">
+        <h2 id="vin-title">VIN <span id="vin-status" class="badge"></span></h2>
+        <div id="vin-value" class="vin-value"></div>
+        <p class="note">Please confirm the VIN against the car or its documents: automatic reading (OCR) can confuse similar characters.</p>
+        <div id="vin-decode"></div>
+      </div>
+
+      <!-- Spin viewer -->
+      <div id="spin-card" class="card" aria-labelledby="spin-title">
+        <h2 id="spin-title">360&deg; view <span id="spin-count" class="badge"></span></h2>
+        <p class="small muted">Drag or swipe sideways to turn the car. Red boxes are detected damage.</p>
+        <div id="spin-empty" class="note" hidden></div>
+        <div id="spin-wrap">
+          <div id="spin-stage" class="spin-stage" tabindex="0" role="img" aria-label="360 degree view of the car. Use left and right arrow keys to rotate.">
+            <div id="spin-frame" class="spin-frame">
+              <img id="spin-img" alt="" draggable="false">
+              <div id="spin-pins" class="spin-pins"></div>
+            </div>
+            <div id="spin-loading" class="spin-overlay-msg" hidden></div>
+          </div>
+          <div class="spin-controls">
+            <button id="spin-prev" class="btn" type="button" aria-label="Previous frame">&#9664;</button>
+            <input id="spin-range" type="range" min="0" max="0" value="0" step="1" aria-label="Frame">
+            <button id="spin-next" class="btn" type="button" aria-label="Next frame">&#9654;</button>
+          </div>
+          <p id="spin-caption" class="small muted" style="margin:0.4rem 0 0"></p>
+          <div id="spin-pin-frames" class="chips"></div>
+          <p id="spin-pin-note" class="small muted" hidden></p>
+        </div>
+      </div>
+
+      <!-- Damage list -->
+      <div id="damage-card" class="card" aria-labelledby="damage-title">
+        <h2 id="damage-title">Damage <span id="damage-count" class="badge"></span></h2>
+        <div id="damage-body"></div>
+        <div id="damage-total" class="total" hidden></div>
+        <p class="small muted" style="margin-top:0.6rem">Prices are &ldquo;from&rdquo; prices from our local price table; tap a price to see where it comes from.</p>
+      </div>
+
+      <!-- Diff vs previous inspection -->
+      <div id="diff-card" class="card" aria-labelledby="diff-title">
+        <h2 id="diff-title">New since last inspection</h2>
+        <div id="diff-body"></div>
+        <div id="history-body"></div>
+      </div>
+
+      <!-- Paint try-on -->
+      <div id="tryon-card" class="card" aria-labelledby="tryon-title">
+        <h2 id="tryon-title">Paint try-on</h2>
+        <p class="small muted">Pick a colour; it is applied to the frame currently shown in the 360&deg; view.</p>
+        <div id="palette-status" class="small muted"></div>
+        <div id="swatches" class="swatches" role="group" aria-label="Paint colours"></div>
+        <figure class="tryon-figure" id="tryon-figure" hidden>
+          <img id="tryon-img" alt="Car recoloured with the selected paint colour">
+          <figcaption class="small muted">
+            <span id="tryon-label"></span><br>
+            AI-free colour shift of the real photo; white cars appear as a tint.
+          </figcaption>
+        </figure>
+        <p id="tryon-status" class="small" role="status"></p>
+      </div>
+
+      <!-- 3D model -->
+      <div id="recon-card" class="card" aria-labelledby="recon-title">
+        <h2 id="recon-title">3D model <span id="recon-badge" class="badge"></span></h2>
+        <p id="recon-status" role="status"></p>
+        <div id="viewer3d" hidden></div>
+        <p id="recon-error" class="error" hidden></p>
+        <div id="recon-pins"></div>
+        <p class="small muted">Reconstructed on the server from the blurred walkaround frames, after the passport is returned. One finger rotates, two fingers zoom and pan.</p>
+      </div>
+
+      <!-- Body shops -->
+      <div id="shops-card" class="card" aria-labelledby="shops-title">
+        <h2 id="shops-title">Nearby body shops</h2>
+        <div class="row">
+          <button id="shops-geo" class="btn btn-primary" type="button">Find nearby body shops</button>
+          <button id="shops-tashkent" class="btn" type="button">Use Tashkent centre (41.3111, 69.2797)</button>
+        </div>
+        <p id="shops-status" class="small" role="status" style="margin-top:0.6rem"></p>
+        <ul id="shops-list" class="shops-list"></ul>
+        <p id="shops-attr" class="attribution" hidden></p>
+      </div>
+
+      <!-- Verification -->
+      <div id="verify-card" class="card" aria-labelledby="verify-title">
+        <h2 id="verify-title">Verification</h2>
+        <dl class="kv" id="verify-kv"></dl>
+        <div class="row" id="report-links"></div>
+        <p class="note info" style="margin-top:0.75rem">Privacy: plates and faces are blurred before anything is stored.</p>
+        <details class="more">
+          <summary>Processing details</summary>
+          <div id="processing-body"></div>
+        </details>
+      </div>
+
+      <button id="new-btn" class="btn btn-block" type="button">Start a new inspection</button>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a id="repo-link" href="#" rel="noopener" hidden>Source code (AGPL-3.0)</a>
+    <a href="sandbox.html">Registry connector &mdash; sandbox (synthetic data)</a>
+    <span id="version-text"></span>
+  </footer>
+</body>
+</html>
