@@ -11,6 +11,7 @@ easyocr==1.7.2
 pandas
 matplotlib
 pytest
+httpx==0.28.1
 nbformat
 nbclient
 nbconvert

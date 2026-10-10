@@ -48,3 +48,6 @@ uv.lock
 
 # Claude Code local scheduler state
 .claude/scheduled_tasks.lock
+
+# app runtime data (inspections, uploads, SQLite)
+var/
