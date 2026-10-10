@@ -30,11 +30,16 @@ Read this first. Kept up to date during the night; see `git log` for the exact o
   - Changes are judged only on confirmed findings: score >= 0.5 and seen in at least 2 frames. The uncalibrated models
     produce different low-confidence false positives on every run, and those were showing up as phantom "new damage".
   - Low-confidence differences are listed separately as "possible changes - please verify".
-- **High-quality 3D, measured on this laptop:** 115 frames at 4 fps, COLMAP calibration (0.585 px), and 30k-step Gaussian
-  splats on the GPU, about 29 min. Held-out views of the car reach 24.5 dB PSNR. The splats are cropped to the car.
-  To turn this on in the app, start the server with
-  `AVTO_HQ3D=1 AVTO_FPS=4 AVTO_MAX_FRAMES=120` (see `docs/research/recon3d_smoke_results.md`). It needs the Brush binary
-  in `tools/`; `scripts/recon3d_hq.py` explains where to get it.
+- **High-quality 3D, verified inside the app** on a fresh inspection with all fixes:
+  - 115 frames at 4 fps, all 115 calibrated by COLMAP (0.53 px), then 30k-step Brush splats on the GPU, 36 min in total.
+  - Held-out views reach 25.1 dB PSNR on the whole image and 24.8 dB on the car.
+  - The car crop keeps 911k of 2.1M Gaussians, and phones get a 28 MB copy.
+  - Enable it with `AVTO_HQ3D=1 AVTO_FPS=4 AVTO_MAX_FRAMES=120`; it needs the Brush binary in `tools/`.
+  - A bug where Brush picked up a degenerate 2-image COLMAP side-model was found and fixed. Both runs are recorded in
+    `docs/research/recon3d_smoke_results.md`.
+- **Speed on the HF CPU Basic proxy, measured:** a full app inspection with the server pinned to 2 threads and the GPU
+  hidden takes 138.8 s for 72 frames. That is minutes, not seconds, but it works. See `docs/pitch/cost_model.md`.
+- **Screenshots for the deck** (VIN masked, demo car undamaged): `docs/assets/screenshots/`.
 - **Docker:** not built, because docker is not on this laptop. Both of the image's Python environments were installed
   from scratch in clean venvs, and the full test suite passes there on CPU only.
 - **Phase 2 tooling:** see `docs/research/labelling_guide.md` and `scripts/eval.py`. It produces no numbers until
