@@ -177,3 +177,36 @@ def test_build_pdf_font_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     out = build_pdf(report, tmp_path / "fallback.pdf")
     data = out.read_bytes()
     assert data.startswith(b"%PDF") and len(data) > 1024
+
+
+# --------------------------------------------------------------------------- confirmed-only change detection
+
+
+def _cf(part: str, damage: str, severity: str, score: float, views: int) -> dict:
+    return {"part": part, "damage": damage, "severity": severity, "max_score": score, "n_observations": views}
+
+
+def test_diff_judges_changes_on_confirmed_findings_only() -> None:
+    from avtopassport.passport.diff import diff
+
+    prev = [_cf("hood", "dent", "minor", 0.9, 3),            # confirmed before
+            _cf("trunk", "scratch", "minor", 0.3, 1)]         # unconfirmed before
+    cur = [_cf("hood", "dent", "minor", 0.4, 1),             # now only unconfirmed -> uncertain, not resolved
+           _cf("roof", "scratch", "minor", 0.27, 1),          # unconfirmed, new -> possible change, not "new"
+           _cf("left_front-door", "dent", "moderate", 0.8, 2)]  # confirmed, new -> new
+    d = diff(prev, cur)
+    assert [(i["part"], i["damage"]) for i in d["new"]] == [("left_front-door", "dent")]
+    assert [(i["part"], i["damage"]) for i in d["uncertain"]] == [("hood", "dent")]
+    assert d["resolved"] == []
+    changes = {(i["part"], i["direction"]) for i in d["possible_changes"]}
+    assert changes == {("roof", "appeared"), ("trunk", "disappeared")}
+    assert "confirmed" in d["rule"]
+
+
+def test_diff_same_low_confidence_noise_is_not_new_damage() -> None:
+    from avtopassport.passport.diff import diff
+
+    prev = [_cf("left_back-door", "scratch", "severe", 0.27, 1)]
+    cur = [_cf("right_quarter-panel", "scratch", "severe", 0.26, 1)]
+    d = diff(prev, cur)
+    assert d["new"] == [] and d["resolved"] == [] and len(d["possible_changes"]) == 2

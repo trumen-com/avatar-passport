@@ -988,10 +988,21 @@ function renderDiff(job, r) {
     if (!items.length) continue;
     box.append(el("div", { class: `diff-group ${key}` }, el("h3", {}, `${title} (${items.length})`), el("ul", {}, items.map((x) => el("li", {}, diffItemText(x))))));
   }
+  const uncertain = Array.isArray(diff.uncertain) ? diff.uncertain : [];
+  if (uncertain.length) {
+    box.append(el("div", { class: "diff-group uncertain" }, el("h3", {}, `Seen before, only low confidence now (${uncertain.length})`), el("ul", {}, uncertain.map((x) => el("li", {}, diffItemText(x))))));
+  }
   const unchanged = Array.isArray(diff.unchanged) ? diff.unchanged : [];
   if (unchanged.length) {
     box.append(el("details", { class: "more" }, el("summary", {}, `Unchanged (${unchanged.length})`), el("ul", { class: "notes" }, unchanged.map((x) => el("li", {}, diffItemText(x))))));
   }
+  const possible = Array.isArray(diff.possible_changes) ? diff.possible_changes : [];
+  if (possible.length) {
+    box.append(el("details", { class: "more" },
+      el("summary", {}, `Possible changes, low confidence - please verify (${possible.length})`),
+      el("ul", { class: "notes" }, possible.map((x) => el("li", {}, `${diffItemText(x)} (${x.direction === "appeared" ? "appeared" : "disappeared"})`)))));
+  }
+  if (diff.rule) box.append(el("p", { class: "small muted" }, `How changes are judged: ${diff.rule}.`));
   if (diff.previous_created_utc || diff.previous_id) {
     box.append(el("p", { class: "small muted" }, `Compared with inspection ${diff.previous_id || ""}${diff.previous_created_utc ? " of " + fmtDate(diff.previous_created_utc) : ""}`));
   }
