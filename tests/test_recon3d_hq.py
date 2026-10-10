@@ -254,3 +254,30 @@ def test_frame_check_detects_flipped_axes() -> None:
     flipped = pts * [1, -1, -1]  # what a y-down exporter would write
     res = hq.frame_check(pts[::4], flipped, scale=5.0)
     assert res["best"] == "flip_yz" and not res["same_frame"]
+
+
+
+def test_web_splat_drops_sh_and_keeps_the_most_important(tmp_path) -> None:
+    import numpy as np
+
+    from avtopassport.recon3d import hq
+
+    names = ["x", "y", "z", "f_dc_0", "f_dc_1", "f_dc_2"] + [f"f_rest_{i}" for i in range(45)] + \
+        ["opacity", "scale_0", "scale_1", "scale_2", "rot_0", "rot_1", "rot_2", "rot_3"]
+    n = 10
+    data = np.zeros(n, dtype=[(k, "<f4") for k in names])
+    data["x"] = np.arange(n)
+    data["opacity"] = np.linspace(-5, 5, n)          # later splats are more opaque
+    data["scale_0"] = data["scale_1"] = data["scale_2"] = -2.0
+    src = tmp_path / "in.ply"
+    with open(src, "wb") as fh:
+        fh.write(("ply\nformat binary_little_endian 1.0\nelement vertex %d\n" % n).encode())
+        fh.write("".join(f"property float {k}\n" for k in names).encode())
+        fh.write(b"end_header\n")
+        fh.write(data.tobytes())
+    rep = hq.web_splat(src, tmp_path / "out.ply", max_splats=3)
+    assert rep["n_in"] == 10 and rep["n_out"] == 3 and not rep["sh_kept"]
+    n2, props, off = hq._read_ply_header(tmp_path / "out.ply")
+    assert n2 == 3 and not any(p[1].startswith("f_rest_") for p in props)
+    out = np.fromfile(tmp_path / "out.ply", dtype=[(p[1], "<f4") for p in props], count=n2, offset=off)
+    assert sorted(out["x"].tolist()) == [7.0, 8.0, 9.0]   # the three most opaque survive

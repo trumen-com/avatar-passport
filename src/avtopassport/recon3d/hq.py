@@ -597,6 +597,59 @@ def prepare_images(frames_dir: Path, dataset: Path, masks_dir: Path | None = Non
     return n, n_masks
 
 
+WEB_MAX_SPLATS = 500_000  # phone-friendly cap for the served splat (uncalibrated default)
+
+
+def _read_ply_header(path: Path) -> tuple[int, list[tuple[str, str]], int]:
+    """(vertex count, [(type, name)], byte offset of the data) for a binary little-endian PLY."""
+    with open(path, "rb") as fh:
+        head = b""
+        while b"end_header\n" not in head:
+            chunk = fh.read(4096)
+            if not chunk:
+                raise ValueError(f"no end_header in {path}")
+            head += chunk
+    text, _ = head.split(b"end_header\n", 1)
+    offset = len(text) + len(b"end_header\n")
+    lines = text.decode("ascii", "replace").splitlines()
+    if "format binary_little_endian 1.0" not in lines:
+        raise ValueError("only binary_little_endian PLY is supported")
+    n = next(int(line.split()[2]) for line in lines if line.startswith("element vertex"))
+    props = [(line.split()[1], line.split()[2]) for line in lines if line.startswith("property")]
+    return n, props, offset
+
+
+def web_splat(src: Path, dst: Path, *, max_splats: int = WEB_MAX_SPLATS, keep_sh: bool = False) -> dict:
+    """Phone-friendly copy of a 3DGS PLY: drop the higher-order SH colour terms (f_rest_*) unless keep_sh, and keep
+    at most max_splats splats ranked by importance = sigmoid(opacity) * exp(mean(log scales)) (opaque, large splats
+    first). Returns counts and sizes. The full-quality file is left untouched."""
+    n, props, offset = _read_ply_header(Path(src))
+    np_type = {"float": "<f4", "double": "<f8", "uchar": "u1", "int": "<i4", "uint": "<u4"}
+    dtype = np.dtype([(name, np_type[t]) for t, name in props])
+    data = np.fromfile(src, dtype=dtype, count=n, offset=offset)
+    names = [name for _, name in props]
+    keep_names = [x for x in names if keep_sh or not x.startswith("f_rest_")]
+    sel = np.arange(n)
+    if n > max_splats and {"opacity", "scale_0", "scale_1", "scale_2"} <= set(names):
+        op = 1.0 / (1.0 + np.exp(-data["opacity"].astype(np.float64)))
+        size = np.exp((data["scale_0"].astype(np.float64) + data["scale_1"] + data["scale_2"]) / 3.0)
+        sel = np.sort(np.argpartition(-(op * size), max_splats - 1)[:max_splats])
+    out = np.empty(len(sel), dtype=np.dtype([(x, dtype[x]) for x in keep_names]))
+    for x in keep_names:
+        out[x] = data[x][sel]
+    inv = {v: k for k, v in np_type.items()}
+    header = ["ply", "format binary_little_endian 1.0", "comment AvtoPassport web export (SH degree 0)" if not keep_sh
+              else "comment AvtoPassport web export", f"element vertex {len(out)}"]
+    header += [f"property {inv[dtype[x].str if dtype[x].str in inv else '<f4']} {x}" for x in keep_names]
+    header.append("end_header")
+    dst = Path(dst)
+    with open(dst, "wb") as fh:
+        fh.write(("\n".join(header) + "\n").encode("ascii"))
+        fh.write(out.tobytes())
+    return {"n_in": int(n), "n_out": int(len(out)), "sh_kept": keep_sh, "bytes_in": Path(src).stat().st_size,
+            "bytes_out": dst.stat().st_size, "max_splats": max_splats}
+
+
 def finalize(dataset: Path, splat: Path, report: dict) -> Path:
     """Car crop of a trained splat (dataset/splat_car.ply) when the SfM stage found a car box; updates report.
     Returns the file to serve (the crop, else the full splat)."""
@@ -608,9 +661,20 @@ def finalize(dataset: Path, splat: Path, report: dict) -> Path:
         crop = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
     report["crop"] = {k: v for k, v in crop.items() if k != "car_box"}
     if crop.get("ok") and crop.get("n_splats_car"):
-        return out
-    out.unlink(missing_ok=True)
-    return Path(splat)
+        serve = out
+    else:
+        out.unlink(missing_ok=True)
+        serve = Path(splat)
+    # Phones: a 2M-splat SH3 model is several hundred MB. Serve a web copy; the full-quality files stay on disk.
+    web = dataset / "splat_web.ply"
+    try:
+        report["web"] = web_splat(serve, web)
+        report["web"]["source"] = serve.name
+        return web
+    except Exception as exc:  # noqa: BLE001 - fall back to the full file
+        report["web"] = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+        web.unlink(missing_ok=True)
+        return serve
 
 
 def build_hq(frames_dir: Path, out_dir: Path, *, steps: int = DEFAULT_STEPS, max_splats: int | None = None,
