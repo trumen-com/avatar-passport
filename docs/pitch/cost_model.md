@@ -53,6 +53,7 @@
 | CPU, 16 threads, ONNX Runtime | 53.9 | 24 frames + 9 photos + 3 VIN photos | measured on the dev laptop (RTX 5050 / Ryzen 7 260) | `outputs/smoke/R2-local-cpu/estimate.csv` TOTAL (tier cpu_ort16) | 66.8 |
 | HF CPU Basic proxy: ONNX Runtime pinned to 2 threads | 106.4 | 24 frames + 9 photos + 3 VIN photos | 2-thread pinned proxy, optimistic lower bound | `outputs/smoke/R2-local-cpu/estimate.csv` TOTAL (tier cpu_ort2) | 33.8 |
 | HF CPU Basic planning figure: proxy x2 safety factor (assumption) | 212.7 | as above | 2-thread pinned proxy, optimistic lower bound x2 | `outputs/smoke/R2-local-cpu/estimate.csv` x2 column | 16.9 |
+| HF CPU Basic proxy: full app inspection (server pinned to 2 threads, CUDA hidden) | 138.8 | 72 frames + 1 VIN photo | 2-thread pinned proxy, optimistic lower bound | `outputs/e2e/app_cpu2/result.json` timings_ms.total | 25.9 |
 | HF CPU Basic, on the Space itself | not measured yet |  | Phase 4 |  |  |
 <!-- END:measured_inspection_time -->
 

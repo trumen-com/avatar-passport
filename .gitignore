@@ -57,3 +57,4 @@ tools/
 
 # Brush GPU autotune cache
 target/
+var-cpu2/

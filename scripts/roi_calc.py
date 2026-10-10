@@ -53,6 +53,7 @@ X2_SAFETY = 2.0                    # the smoke notebook's "x2 safety factor (ass
 
 # ---------------------------------------------------------------- measured inputs (paths relative to REPO)
 E2E_GPU = "outputs/e2e/run1/result.json"
+E2E_CPU2 = "outputs/e2e/app_cpu2/result.json"  # full app inspection on the 2-thread pinned proxy
 SMOKE_GPU_EST = "outputs/smoke/R1-local-gpu/estimate.csv"
 SMOKE_CPU_EST = "outputs/smoke/R2-local-cpu/estimate.csv"
 R3D = {"gpu": "outputs/recon3d/R3D-gpu/results.json",
@@ -217,6 +218,8 @@ class Measured:
     sfm: dict[str, Any] | None
     brush: list[tuple[str, dict[str, Any]]]
     storage_bytes: int | None
+    app_cpu2_s: float | None = None
+    app_cpu2_frames: int | None = None
 
 
 def load_measured(repo: Path) -> tuple[Measured | None, list[str]]:
@@ -253,6 +256,8 @@ def load_measured(repo: Path) -> tuple[Measured | None, list[str]]:
         cpu_ort2_x2_s=(ort2[1] if ort2[1] is not None else ort2[0] * X2_SAFETY) / 1000,
         r3d=r3d, r3d_module_gpu=_read_json(repo / R3D_MODULE_GPU), sfm=_read_json(repo / SFM_HQ),
         brush=brush, storage_bytes=storage,
+        app_cpu2_s=(float(c2["timings_ms"]["total"]) / 1000) if (c2 := _read_json(repo / E2E_CPU2)) else None,
+        app_cpu2_frames=len((c2 or {}).get("extra", {}).get("frames", [])) or None,
     )
     return m, []
 
@@ -437,6 +442,10 @@ def render_measured_time(m: Measured) -> str:
     rows.append([f"HF CPU Basic planning figure: proxy x{fmt(X2_SAFETY, 0)} safety factor (assumption)",
                  fmt(m.cpu_ort2_x2_s, 1), "as above", PROXY + " x2", f"`{SMOKE_CPU_EST}` x2 column",
                  fmt(3600 / m.cpu_ort2_x2_s, 1)])
+    if m.app_cpu2_s is not None:
+        rows.append(["HF CPU Basic proxy: full app inspection (server pinned to 2 threads, CUDA hidden)",
+                     fmt(m.app_cpu2_s, 1), f"{m.app_cpu2_frames} frames + 1 VIN photo", PROXY,
+                     f"`{E2E_CPU2}` timings_ms.total", fmt(3600 / m.app_cpu2_s, 1)])
     rows.append(["HF CPU Basic, on the Space itself", "not measured yet", "", "Phase 4", "", ""])
     return "\n".join([GEN, "", _table(["configuration", "seconds per inspection", "input", "label", "source",
                                        "inspections per hour (3600 / s, one at a time)"], rows)]) + "\n"
