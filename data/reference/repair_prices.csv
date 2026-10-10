@@ -1,0 +1,15 @@
+service,service_category,part,car_class,price_original,currency,fx_rate_uzs,fx_date,fx_source,price_uzs,price_kind,source_url,source_type,listing_date,retrieved_on,is_estimate
+painting,paint,any,any,295000,UZS,,,,295000,from,https://auto.ustabor.uz/ru/price/body_work,web_listing,,2026-10-10,false
+dent straightening,dent,any,any,500000,UZS,,,,500000,from,https://auto.ustabor.uz/ru/price/body_work,web_listing,,2026-10-10,false
+scratch removal,scratch,any,any,325000,UZS,,,,325000,from,https://auto.ustabor.uz/ru/price/body_work,web_listing,,2026-10-10,false
+body panel replacement,panel_replacement,panel,any,1200000,UZS,,,,1200000,from,https://auto.ustabor.uz/ru/price/body_work,web_listing,,2026-10-10,false
+polishing,polish,any,any,1004167,UZS,,,,1004167,from,https://auto.ustabor.uz/ru/price/body_work,web_listing,,2026-10-10,false
+paint one panel,paint,panel,any,55,USD,11897.90,2026-10-10,https://cbu.uz/ru/arkhiv-kursov-valyut/json/USD/2026-10-10/,654000,from,https://www.olx.uz/d/obyavlenie/pokraska-kosmetika-polirovka-keramika-i-t-d-ID1YwdF.html,web_listing,2026-09-25,2026-10-10,false
+dent repair without paint,dent,any,any,88,USD,11897.90,2026-10-10,https://cbu.uz/ru/arkhiv-kursov-valyut/json/USD/2026-10-10/,1047000,from,https://www.olx.uz/d/obyavlenie/pokraska-kosmetika-polirovka-keramika-i-t-d-ID1YwdF.html,web_listing,2026-09-25,2026-10-10,false
+paint one panel,paint,panel,any,77,USD,11897.90,2026-10-10,https://cbu.uz/ru/arkhiv-kursov-valyut/json/USD/2026-10-10/,916000,from,https://www.olx.uz/d/obyavlenie/pokraska-kosmetika-polirovka-keramika-shumo-tsiya-kostoprav-ID22hsA.html,web_listing,2026-10-03,2026-10-10,false
+"body polishing, any car (advertised as a promo)",polish,whole_body,any,600000,UZS,,,,600000,flat,https://www.olx.uz/d/obyavlenie/polirovka-avto-kuzova-za-lyuboy-mashina-600000-sum-600-tsyach-sum-ID4bVtP.html,web_listing,2026-10-06,2026-10-10,false
+stone-chip dent repair,dent,any,any,100000,UZS,,,,100000,from,https://www.olx.uz/d/obyavlenie/avto-vakuum-pachok-tugirlash-vakum-ID3goDG.html,web_listing,2026-10-10,2026-10-10,false
+body repair / paint / polish advert (service not stated),unspecified,any,Nexia/Lacetti/Matiz/foreign,200000,UZS,,,,200000,flat,https://www.cenotavr.uz/tashkent/remont-kuzova-pokraska-polirovka-kuzova-90,web_listing,,2026-10-10,false
+pre-purchase paint/body inspection,inspection,whole_body,any,300000,UZS,,,,300000,from,https://www.olx.uz/d/obyavlenie/proverka-avto-po-kuzovu-i-probegu-po-nizkim-tsenam-vyezdnoy-osmotr-ID3Vjj4.html,web_listing,2026-10-04,2026-10-10,false
+body polishing (dealer promo),promo,whole_body,any BYD,2000000,UZS,,,,2000000,promo,https://t.me/byd_chigatoy,telegram_post,2025-02-15,2026-10-10,false
+wheel alignment (dealer promo; normally 200000 UZS),promo,wheels,BYD,100000,UZS,,,,100000,promo,https://t.me/byd_chigatoy,telegram_post,2026-04-08,2026-10-10,false
