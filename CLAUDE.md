@@ -16,6 +16,7 @@ Core user flow:
    - Damage list by car part, with severity, recommended action (polish / paint / repair / replace) and cost in UZS from a local price table.
    - History for this VIN = previous AvtoPassport inspections, with a diff: "new damage since last inspection".
    - Paint try-on: the real car recoloured in 6–8 colours.
+   - 3D model of the car reconstructed from the walkaround frames, with damage pins (built in the background after the passport is returned; slow inference is acceptable for the demo as long as it really runs — scope change 2026-10-11, see `docs/decisions/004-3d-reconstruction.md`).
    - Nearby body/paint shops (OpenStreetMap).
    - Shareable passport page + PDF with a SHA-256 hash of the source frames and a timestamp.
 
@@ -64,7 +65,7 @@ Pure Python, testable, no UI code. Port working notebook code here; notebooks th
 
 ### Phase 4 — App + deploy
 - Backend: FastAPI (`src/avtopassport/api/`), models exported to ONNX, CPU inference.
-- Frontend: mobile-first static page in `web/` served by the same FastAPI app (one deploy). Camera/video capture via `<input type="file" accept="video/*" capture="environment">`, upload progress, spin viewer, try-on, passport page.
+- Frontend: mobile-first static page in `web/` served by the same FastAPI app (one deploy). Camera/video capture via `<input type="file" accept="video/*" capture="environment">`, upload progress, spin viewer, try-on, passport page, 3D viewer (async job; shows "building…" until the model is ready).
 - Storage: SQLite for passports (VIN → inspections). Images stored only after blurring.
 - Deploy: Dockerfile → Hugging Face Spaces (Docker) or Render. GitHub Actions workflow in `.github/workflows/deploy.yml`.
 - Test on at least 3 different phones. Record a backup demo video.
@@ -90,6 +91,7 @@ VIN photo ─► vin.ocr ─► vin.validate ─► vin.decode
                                          ▼
                  passport.report (JSON + PDF + SHA-256 of frames) ─► api ─► web
 tryon.recolor: body-panel mask (parts minus glass/tyres/lights) → LAB hue/chroma shift, keep L channel
+recon3d.build (async): blurred frames → 3D model + camera poses → damage masks projected to 3D pins → web 3D viewer
 ```
 
 Rules: each step a pure function with typed inputs/outputs; log timing per step; never let one failed frame crash the run; return a structured "could not read VIN" instead of guessing.
@@ -151,7 +153,7 @@ avtopassport/
 
 ## 7. Out of scope (do not build; roadmap slide only)
 
-- Real 3D reconstruction (Gaussian splatting / photogrammetry) — too slow for a live demo on CPU. The spin viewer replaces it.
+- ~~Real 3D reconstruction~~ — moved IN scope on 2026-10-11 (user decision): built asynchronously, slow is acceptable for the demo, must really run; reconstructed only from blurred frames. The spin viewer stays as the fast view and the fallback.
 - 3D rims / body kits / spoilers. Optional only if time remains: a clearly labelled "AI preview" via an image-editing model API, cost included.
 - Real police / insurer registry access.
 - Police as a user.

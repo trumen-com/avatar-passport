@@ -32,6 +32,7 @@ notebooks/*.html
 
 # --- python / env ---
 .venv/
+.venv-3d/
 __pycache__/
 *.py[cod]
 *.egg-info/

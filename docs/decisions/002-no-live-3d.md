@@ -1,5 +1,7 @@
 # ADR 002: No live 3D reconstruction; a spin viewer instead
 
+> **Status: superseded on 2026-10-11** by `004-3d-reconstruction.md`. The user decided to include 3D reconstruction as an asynchronous feature (slow inference acceptable for the demo, as long as it really runs). The spin viewer remains the fast view and fallback.
+
 - **Status:** Accepted. This is set by the brief (CLAUDE.md section 7).
 - **Date:** 2026-10-10
 
