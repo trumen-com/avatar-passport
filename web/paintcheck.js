@@ -210,10 +210,11 @@ export function createPaintCheck(container, { onPanels } = {}) {
     if (!demo) return;
     const btn = demoBox.querySelector(".pc-demo-btn");
     btn.disabled = true;
-    for (const d of demo) {
+    // download and decode all gap photos at once, then analyse each as soon as it is ready
+    await Promise.all(demo.map(async (d) => {
       const j = JOINTS.find((x) => x.id === d.joint);
       const li = list.querySelector(`[data-joint="${d.joint}"]`);
-      if (!j || !li) continue;
+      if (!j || !li) return;
       try {
         const blob = await (await fetch(`paint/demo/${d.file}`)).blob();
         const { img, thumb } = await loadImage(blob);
@@ -222,7 +223,7 @@ export function createPaintCheck(container, { onPanels } = {}) {
       } catch (e) {
         setState(li, `Could not read the photo: ${e.message}`, "err");
       }
-    }
+    }));
     btn.disabled = false;
   });
 
