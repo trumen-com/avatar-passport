@@ -32,6 +32,12 @@ const state = {
   pending3d: { cloud: null, hq: null, parts: null }, // finished 3D models, mounted when the 3D tab is first opened
   viewerParts: null,
   viewerPartsUrl: null,
+  partsData: null,       // {url, promise}: one download shared by the Car tab and the 3D tab
+  damageByPart: null,    // confirmed findings by part, for the Damage colours of the parts model
+  ovParts: null,         // parts viewer in the Car tab
+  ovPartsUrl: null,
+  ovView: "photos",
+  ovViewChosen: false,
 };
 
 const capture = { video: null, vinPhoto: null, demo: false }; // demo: use the demo files already on the server
@@ -577,6 +583,7 @@ function renderPassport(job) {
 
   const findings = Array.isArray(r.findings) ? r.findings : [];
   spin.sevByKey = new Map(findings.map((f) => [`${f.part}|${f.damage}`, f.severity]));
+  state.damageByPart = damageByPart(findings);
   renderVin(r, extra);
   setupSpin(media, extra);
   renderDamage(r);
@@ -694,6 +701,70 @@ function renderSummary(r) {
             p.lowOnly ? el("span", { class: "badge warn" }, "check") : el("span", { class: `badge sev-${p.sev || "none"}` }, sevBars(p.sev), p.sev || "not rated"))))
       : [el("li", { class: "small muted" }, "No damage was detected on any part.")]),
   );
+}
+
+// ---------- Car tab: the parts 3D model is the main view once it is built; the 360° photos are one tap away
+
+function damageByPart(findings) {
+  const out = {};
+  for (const f of findings) {
+    if (isLowConfidence(f) || !f.part || f.part === "unknown") continue;
+    const item = `${humanize(f.damage)} (${f.severity || "not rated"})`;
+    const cur = out[f.part];
+    if (!cur) out[f.part] = { severity: f.severity, items: [item] };
+    else {
+      cur.items.push(item);
+      if ((SEV_RANK[f.severity] || 0) > (SEV_RANK[cur.severity] || 0)) cur.severity = f.severity;
+    }
+  }
+  return out;
+}
+
+function partsData(url) {
+  if (!state.partsData || state.partsData.url !== url) {
+    const promise = apiJSON(url);
+    state.partsData = { url, promise };
+    promise.catch(() => {
+      if (state.partsData && state.partsData.promise === promise) state.partsData = null;
+    });
+  }
+  return state.partsData.promise;
+}
+
+function setOverviewView(view) {
+  const show3d = view === "3d" && Boolean(state.ovParts);
+  state.ovView = show3d ? "3d" : "photos";
+  $("#overview-3d").hidden = !show3d;
+  $("#ov-photos").hidden = show3d;
+  for (const b of document.querySelectorAll("#view-toggle button")) b.setAttribute("aria-pressed", String(b.dataset.view === state.ovView));
+  if (show3d) toggleSpinPlay(false);
+}
+
+function showPartCaption(p) {
+  const cap = $("#ov3d-caption");
+  if (!p) {
+    cap.textContent = "Tap a part to see its damage.";
+    return;
+  }
+  cap.replaceChildren(el("strong", {}, p.name), p.damage ? ` · ${p.damage.items.join(", ")} · ` : " · no damage found");
+  if (p.damage) {
+    cap.append(el("a", { href: "#defects", onclick: (e) => { e.preventDefault(); goToPart(p.key); } }, "View in Damage list"));
+  }
+}
+
+async function mountOverviewParts(url) {
+  state.ovPartsUrl = url;
+  try {
+    const [mod, data] = await Promise.all([import("./partsviewer.js"), partsData(url)]);
+    if (state.ovParts) state.ovParts.dispose();
+    state.ovParts = mod.createPartsViewer($("#ov3d-viewer"), data,
+      { damage: state.damageByPart || {}, mode: 2, compact: true, onSelect: showPartCaption });
+    $("#view-toggle").hidden = false;
+    if (!state.ovViewChosen) setOverviewView("3d");
+  } catch (e) {
+    console.error(e);
+    state.ovPartsUrl = null; // the 360° photos stay as the view
+  }
 }
 
 // ---------- light / dark theme (light by default, like the reference design; the choice is kept in this browser)
@@ -1742,7 +1813,20 @@ function fmtMin(sec) {
   return Number.isFinite(s) ? `${(s / 60).toFixed(s < 600 ? 1 : 0)} min` : null;
 }
 
+function renderParts3d(h) {
+  // ready right after the camera poses, while the splats may still be training
+  const partsUrl = safeHref(h && h.parts3d);
+  $("#parts3d-card").hidden = !partsUrl;
+  if (!partsUrl) return;
+  if (state.viewerPartsUrl !== partsUrl) {
+    state.pending3d.parts = partsUrl;
+    mountPending3d();
+  }
+  if (state.ovPartsUrl !== partsUrl) mountOverviewParts(partsUrl);
+}
+
 function renderHq(h) {
+  renderParts3d(h);
   const card = $("#hq-card");
   // disabled / unavailable / not started: this server has no GPU worker for it, so nothing is shown (no fake).
   if (!h || !["waiting", "queued", "running", "done", "error"].includes(h.status)) {
@@ -1806,12 +1890,6 @@ function renderHq(h) {
         state.pending3d.hq = { url: splat, pins: confidentPins(h.pins), view: h.view || null };
         mountPending3d();
       }
-      const partsUrl = safeHref(h.parts3d);
-      $("#parts3d-card").hidden = !partsUrl;
-      if (partsUrl && state.viewerPartsUrl !== partsUrl) {
-        state.pending3d.parts = partsUrl;
-        mountPending3d();
-      }
       break;
     }
     case "error":
@@ -1830,9 +1908,9 @@ async function mountPartsViewer(url) {
   const box = $("#viewer-parts");
   box.replaceChildren(el("p", { class: "small muted" }, "Loading the parts model…"));
   try {
-    const [mod, data] = await Promise.all([import("./partsviewer.js"), apiJSON(url)]);
+    const [mod, data] = await Promise.all([import("./partsviewer.js"), partsData(url)]);
     if (state.viewerParts) state.viewerParts.dispose();
-    state.viewerParts = mod.createPartsViewer(box, data);
+    state.viewerParts = mod.createPartsViewer(box, data, { damage: state.damageByPart || {} });
     const m = data.meta || {};
     $("#parts3d-status").textContent = `${(m.parts || []).length} parts${m.source ? ` from ${m.source}` : ""}. Slide "Take apart" to split the car.`;
   } catch (e) {
@@ -2084,6 +2162,12 @@ function init() {
   bindTabs();
   state.initialTab = tabFromHash();
   $("#theme-btn").addEventListener("click", toggleTheme);
+  $("#view-toggle").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-view]");
+    if (!b) return;
+    state.ovViewChosen = true;
+    setOverviewView(b.dataset.view);
+  });
   syncThemeButton();
 
   loadHealth();

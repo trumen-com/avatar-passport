@@ -1458,3 +1458,14 @@ tr.flash > td { animation: flash-row 2.4s ease-out; }
 .pv-sw { flex: none; width: 10px; height: 10px; margin-top: 5px; border-radius: 2px; }
 .pv-ct { color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
 @media (min-width: 1100px) { .pv-grid { grid-template-columns: minmax(0, 1fr) 280px; } }
+
+/* Car tab: 3D model / Photos switch; the parts viewer fills the same stage height as the 360° view */
+.view-toggle { display: inline-flex; margin: 0 0 10px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.view-toggle[hidden] { display: none; }
+.view-toggle button { min-height: 38px; padding: 0.35rem 0.9rem; border: 0; background: var(--surface); color: var(--text); font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+.view-toggle button + button { border-left: 1px solid var(--border); }
+.view-toggle button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.pv-compact .pv-stage { aspect-ratio: auto; height: var(--stage-h); }
+.ov3d-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; margin-top: 0.5rem; }
+.ov3d-foot p { margin: 0; }
+.pv-compact .pv-grid { grid-template-columns: minmax(0, 1fr); }

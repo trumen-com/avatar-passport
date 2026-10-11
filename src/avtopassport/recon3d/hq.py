@@ -63,6 +63,15 @@ def _env() -> dict[str, str]:
     return env
 
 
+def _torch_device() -> str:
+    try:
+        import torch  # noqa: PLC0415
+
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except Exception:  # noqa: BLE001
+        return "cpu"
+
+
 def vulkan_gpu() -> tuple[bool, str]:
     """(ok, message): a Vulkan driver (ICD manifest) and a GPU device node are present."""
     icds = [p for d in VULKAN_ICD_DIRS if Path(d).is_dir() for p in Path(d).glob("*.json")
@@ -679,7 +688,8 @@ def finalize(dataset: Path, splat: Path, report: dict) -> Path:
 
 def build_hq(frames_dir: Path, out_dir: Path, *, steps: int = DEFAULT_STEPS, max_splats: int | None = None,
              pins2d: list[dict] | None = None, masks_dir: Path | None = None, python: Path = DEFAULT_PYTHON,
-             brush: Path = BRUSH, sfm_timeout_s: int = 3600, brush_timeout_s: int = 4 * 3600) -> dict:
+             brush: Path = BRUSH, sfm_timeout_s: int = 3600, brush_timeout_s: int = 4 * 3600,
+             parts3d: bool = True) -> dict:
     """SfM (in .venv-3d) + Brush + car crop -> out_dir/splat.ply, splat_car.ply, hq_report.json. Never raises.
 
     Returns {"ok", "error", "splat" (car crop when available, else full), "splat_full", "report", "seconds_wall",
@@ -717,6 +727,12 @@ def build_hq(frames_dir: Path, out_dir: Path, *, steps: int = DEFAULT_STEPS, max
         report.update(n_registered=sfm.get("n_registered"), n_points3d=sfm.get("n_points3d"),
                       mean_reprojection_error_px=sfm.get("mean_reprojection_error_px"), view=sfm.get("view"),
                       car_box=sfm.get("car_box"), pins=sfm.get("pins") or [], sfm_seconds_detail=sfm.get("seconds"))
+        if parts3d:  # the parts 3D model needs only the SfM: build it now (~30 s), before the long Brush training
+            from avtopassport.recon3d.parts3d import build_parts3d  # noqa: PLC0415
+
+            p3 = build_parts3d(out_dir, device=_torch_device())
+            report["parts3d"] = {k: p3.get(k) for k in ("ok", "error", "seconds")}
+            report["seconds"]["parts3d"] = p3.get("seconds")
         br = run_brush(out_dir, steps=steps, max_splats=max_splats, name="splat", brush=brush,
                        timeout_s=brush_timeout_s, masks_dir=out_dir / "car_masks" if n_masks else None)
         report["seconds"]["brush"] = br["seconds"]

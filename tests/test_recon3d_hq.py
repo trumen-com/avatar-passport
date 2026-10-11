@@ -102,7 +102,8 @@ def test_build_hq_ok_with_fakes(tmp_path: Path) -> None:
     assert rep == res["report"] and rep["ok"] is True
     assert rep["n_images"] == 12 and rep["n_registered"] == 12 and rep["mean_reprojection_error_px"] == 0.6
     assert rep["psnr"] == pytest.approx(24.5) and rep["steps"] == 50 and rep["view"]["radius"] == 3.0
-    assert set(rep["seconds"]) == {"sfm", "brush", "crop", "total"} and rep["splat_bytes"] == splat.stat().st_size
+    assert set(rep["seconds"]) == {"sfm", "parts3d", "brush", "crop", "total"} and rep["splat_bytes"] == splat.stat().st_size
+    assert rep["parts3d"]["ok"] is False and rep["parts3d"]["error"]  # fake SfM: the parts step fails, the build does not
     assert rep["crop"]["ok"] is False and "no car box" in rep["crop"]["error"]  # no masks -> full splat served
     assert res["splat_full"] == res["splat"] and rep["n_car_masks"] == 0
     assert json.loads((tmp_path / "out" / "pins2d.json").read_text())[0]["frame"] == "f_00000.jpg"

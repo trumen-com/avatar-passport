@@ -983,7 +983,9 @@ class JobManager:
                         finished_utc=utc_now())
         self._store_media(job_id, st.get("inspection_id"), {"recon3d_splat": url})
         self._register_build(job_id, "recon3d_hq")
-        try:  # parts 3D model from the same SfM (about 30 s on the GPU); optional, never fails the HQ build
+        try:  # normally built right after SfM inside hq_build; build it here only if that did not happen
+            if (out_dir / "parts_cloud.json").is_file():
+                return
             p3 = self.backends.parts3d_build(out_dir, self.device or "cpu")
             if not (p3 or {}).get("ok"):
                 log.warning("parts3d %s: %s", job_id, (p3 or {}).get("error"))
@@ -991,7 +993,10 @@ class JobManager:
             log.exception("parts3d %s failed", job_id)
 
     def resolve_parts3d(self, job_id: str) -> Path | None:
-        """parts_cloud.json next to the served HQ splat (built here or attached by reuse), or None."""
+        """parts_cloud.json of this job's HQ build (available while Brush still trains) or of a reused build."""
+        own = self.job_dir(job_id) / "recon3d_hq" / "parts_cloud.json"
+        if own.is_file():
+            return own
         splat = self.resolve_splat(job_id)
         p = splat.parent / "parts_cloud.json" if splat is not None else None
         return p if p is not None and p.is_file() and _contained(p, self.data_dir) else None

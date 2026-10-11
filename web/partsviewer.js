@@ -57,7 +57,21 @@ function offsetOf(p, centre) {
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-export function createPartsViewer(container, D) {
+// Damage colours by severity (same order as the 360° legend); undamaged parts are drawn pale in Damage mode.
+const SEV_RGB = { severe: [0.83, 0.2, 0.12], moderate: [0.87, 0.42, 0.05], minor: [0.79, 0.6, 0.02] };
+const SEV_RANK = { severe: 3, moderate: 2, minor: 1 };
+
+// The finding's part name ("left_back-door") is matched to the 3D part key; sides come from different sources
+// (2D label vs the car's axes), so an exact key wins and the plain part type is the fallback.
+function damageFor(p, damage) {
+  if (!damage) return null;
+  if (damage[p.key]) return damage[p.key];
+  const b = p.key.replace(/^(left|right)_/, "");
+  return p.side === "center" ? damage[b] || null : null;
+}
+
+// opts: { damage: {partKey: {severity, items: [text]}}, mode: 0 photo | 1 part | 2 damage, compact, onSelect(part|null) }
+export function createPartsViewer(container, D, opts = {}) {
   const M = D.meta || {};
   const PARTS = Array.isArray(M.parts) ? M.parts : [];
   if (!PARTS.length || !D.n) throw new Error("the parts model has no parts");
@@ -81,27 +95,33 @@ export function createPartsViewer(container, D) {
   const PAL = PARTS.map((p, i) => hsl((i * 137.508) % 360, 0.62, 0.55));
   const OFF = PARTS.map((p, i) => offsetOf(p, CENTRE[i]));
   const lift = -zmin; // the scan puts the ground at z = 0; keep the view target at mid-height
+  const DMG = PARTS.map((p) => {
+    const d = damageFor(p, opts.damage);
+    return d && SEV_RGB[d.severity] ? [...SEV_RGB[d.severity], 1] : [0, 0, 0, 0];
+  });
+  const hasDamage = DMG.some((d) => d[3] > 0);
   let sel = -1;
-  let mode = 0;
+  let mode = opts.mode ?? 0;
   let ex = 0;
   let yaw = -0.75;
   let pitch = 0.32;
-  let dist = 4.4;
+  let dist = 5.0;
   let spin = true;
 
   container.classList.add("pv");
+  container.classList.toggle("pv-compact", Boolean(opts.compact));
   container.innerHTML = `
     <div class="pv-grid">
       <div class="pv-main">
         <div class="pv-stage"><canvas></canvas><div class="pv-hint">Drag to turn · pinch or scroll to zoom · tap a part</div></div>
         <div class="pv-controls">
           <label class="pv-ex">Take apart <input type="range" min="0" max="1" step="0.01" value="0"></label>
-          <span class="pv-seg" role="group" aria-label="Colour"><button type="button" data-mode="0" aria-pressed="true">Photo colour</button><button type="button" data-mode="1" aria-pressed="false">Part colour</button></span>
+          <span class="pv-seg" role="group" aria-label="Colour"><button type="button" data-mode="0" aria-pressed="${mode === 0}">Photo</button><button type="button" data-mode="1" aria-pressed="${mode === 1}">Parts</button>${opts.damage ? `<button type="button" data-mode="2" aria-pressed="${mode === 2}">Damage</button>` : ""}</span>
           <button type="button" class="pv-spin" aria-pressed="true">Auto-rotate</button>
           <button type="button" class="pv-reset">Reset</button>
         </div>
       </div>
-      <aside class="pv-side">
+      <aside class="pv-side"${opts.compact ? " hidden" : ""}>
         <div class="pv-detail"></div>
         <div class="pv-list"></div>
       </aside>
@@ -121,7 +141,8 @@ export function createPartsViewer(container, D) {
     if (!ps.length) continue;
     html += `<h4>${g}</h4>`;
     for (const p of ps) {
-      const right = metric && p.size_m ? `${p.size_m[0].toFixed(2)} m` : "";
+      const d = damageFor(p, opts.damage);
+      const right = d ? `<span class="badge sev-${esc(d.severity)}">${esc(d.severity)}</span>` : metric && p.size_m ? `${p.size_m[0].toFixed(2)} m` : "";
       html += `<button type="button" data-id="${p.id}" aria-pressed="false"><span class="pv-nm"><span class="pv-sw" style="background:${hex(PAL[p.id])}"></span><span>${esc(p.name)}</span></span><span class="pv-ct">${right}</span></button>`;
     }
   }
@@ -133,13 +154,16 @@ export function createPartsViewer(container, D) {
 
   function renderDetail() {
     if (sel < 0) {
-      detail.innerHTML = `<strong>${PARTS.length} parts</strong><p class="small muted">Tap a part in 3D or in the list.${metric ? "" : " Sizes need the car's published length, so they are not shown."}</p>`;
+      const nd = PARTS.filter((p) => damageFor(p, opts.damage)).length;
+      detail.innerHTML = `<strong>${PARTS.length} parts${opts.damage ? ` · ${nd} with damage` : ""}</strong><p class="small muted">Tap a part in 3D or in the list.${metric ? "" : " Sizes need the car's published length, so they are not shown."}</p>`;
       return;
     }
     const p = PARTS[sel];
     const rows = [];
     if (metric && p.size_m) rows.push(`<dt>Size (L × W × H)</dt><dd>${p.size_m.map((v) => v.toFixed(2)).join(" × ")} m</dd>`);
     rows.push(`<dt>Points</dt><dd>${p.points.toLocaleString()}</dd><dt>Seen in</dt><dd>${p.views}+ views</dd>`);
+    const d = damageFor(p, opts.damage);
+    if (d) rows.unshift(`<dt>Damage</dt><dd>${(d.items || [d.severity]).map(esc).join("<br>")}</dd>`);
     const s = p.search || {};
     const links = [s.olx_uz ? `<a href="${esc(s.olx_uz)}" target="_blank" rel="noopener">OLX.uz</a>` : "", s.google ? `<a href="${esc(s.google)}" target="_blank" rel="noopener">Google</a>` : ""].join("");
     detail.innerHTML = `<strong>${esc(p.name)}</strong><dl class="kv">${rows.join("")}</dl>${links ? `<div class="pv-links"><span class="small muted">Find the part:</span>${links}</div>` : ""}`;
@@ -147,6 +171,7 @@ export function createPartsViewer(container, D) {
 
   function select(i) {
     sel = i;
+    if (opts.onSelect) opts.onSelect(i >= 0 ? { ...PARTS[i], damage: damageFor(PARTS[i], opts.damage) } : null);
     for (const b of list.querySelectorAll("button")) b.setAttribute("aria-pressed", String(+b.dataset.id === i));
     renderDetail();
     draw();
@@ -159,9 +184,9 @@ export function createPartsViewer(container, D) {
   const uni = {};
   if (gl) {
     const NP = PARTS.length;
-    const vs = `attribute vec3 p;attribute vec3 c;attribute float l;uniform mat4 mvp;uniform vec3 off[${NP}];uniform vec3 pal[${NP}];uniform float ex,sel,mode,ps,S,lift;varying vec3 vc;
-      void main(){int i=int(l+0.5);vec3 o=vec3(0.);vec3 pc=vec3(0.);for(int k=0;k<${NP};k++){if(k==i){o=off[k];pc=pal[k];}}
-      vec3 w=p*S+o*ex;w.z+=lift;gl_Position=mvp*vec4(w.y*-1.0,w.z,w.x,1.0);vec3 col=mode>0.5?pc:c;float on=(sel<0.0||abs(l-sel)<0.5)?1.0:0.0;
+    const vs = `attribute vec3 p;attribute vec3 c;attribute float l;uniform mat4 mvp;uniform vec3 off[${NP}];uniform vec3 pal[${NP}];uniform vec4 dmg[${NP}];uniform float ex,sel,mode,ps,S,lift;varying vec3 vc;
+      void main(){int i=int(l+0.5);vec3 o=vec3(0.);vec3 pc=vec3(0.);vec4 dg=vec4(0.);for(int k=0;k<${NP};k++){if(k==i){o=off[k];pc=pal[k];dg=dmg[k];}}
+      vec3 w=p*S+o*ex;w.z+=lift;gl_Position=mvp*vec4(w.y*-1.0,w.z,w.x,1.0);vec3 col=mode>1.5?(dg.w>0.5?dg.rgb:mix(c,vec3(0.88),0.7)):(mode>0.5?pc:c);float on=(sel<0.0||abs(l-sel)<0.5)?1.0:0.0;
       vc=mix(col*0.35+vec3(0.5)*0.25,col,on);gl_PointSize=ps*(on>0.5&&sel>=0.0?1.5:1.0)/gl_Position.w;}`;
     const fs = "precision mediump float;varying vec3 vc;void main(){vec2 d=gl_PointCoord-0.5;if(dot(d,d)>0.25)discard;gl_FragColor=vec4(vc,1.0);}";
     const sh = (t, s) => {
@@ -187,7 +212,8 @@ export function createPartsViewer(container, D) {
     buf(POS, "p", 3, gl.SHORT, true);
     buf(COL, "c", 3, gl.UNSIGNED_BYTE, true);
     buf(new Float32Array(LAB), "l", 1, gl.FLOAT, false);
-    for (const n of ["mvp", "off", "pal", "ex", "sel", "mode", "ps", "S", "lift"]) uni[n] = gl.getUniformLocation(prog, n);
+    for (const n of ["mvp", "off", "pal", "dmg", "ex", "sel", "mode", "ps", "S", "lift"]) uni[n] = gl.getUniformLocation(prog, n);
+    gl.uniform4fv(uni.dmg, new Float32Array(DMG.flat()));
     gl.uniform3fv(uni.off, new Float32Array(OFF.flat()));
     gl.uniform3fv(uni.pal, new Float32Array(PAL.flat()));
     gl.uniform1f(uni.S, S);
@@ -337,7 +363,7 @@ export function createPartsViewer(container, D) {
   }
   spinB.addEventListener("click", () => setSpin(!spin));
   container.querySelector(".pv-reset").addEventListener("click", () => {
-    yaw = -0.75; pitch = 0.32; dist = 4.4; ex = 0; exEl.value = "0";
+    yaw = -0.75; pitch = 0.32; dist = 5.0; ex = 0; exEl.value = "0";
     select(-1);
   });
 
@@ -358,5 +384,7 @@ export function createPartsViewer(container, D) {
       container.replaceChildren();
     },
     redraw: draw,
+    hasDamage,
+    select,
   };
 }

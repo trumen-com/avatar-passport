@@ -156,6 +156,18 @@
           <div class="overview">
             <div id="spin-card" class="card viewer-card" aria-labelledby="spin-title">
               <h2 id="spin-title" class="vh">360&deg; view <span id="spin-count"></span></h2>
+              <div id="view-toggle" class="view-toggle" role="group" aria-label="View" hidden>
+                <button type="button" data-view="3d" aria-pressed="false">3D model</button>
+                <button type="button" data-view="photos" aria-pressed="true">Photos</button>
+              </div>
+              <div id="overview-3d" hidden>
+                <div id="ov3d-viewer"></div>
+                <div class="ov3d-foot">
+                  <div class="legend" aria-label="Damage colours"><span class="lg sev-minor">Minor</span><span class="lg sev-moderate">Moderate</span><span class="lg sev-severe">Severe</span></div>
+                  <p id="ov3d-caption" class="small muted">Tap a part to see its damage.</p>
+                </div>
+              </div>
+              <div id="ov-photos">
               <div id="spin-empty" class="note" hidden></div>
               <div id="spin-wrap">
                 <div class="stage-wrap">
@@ -183,6 +195,7 @@
                 <p id="spin-caption" class="small muted" style="margin:0.2rem 0 0"></p>
                 <div id="spin-pin-frames" class="chips"></div>
                 <p id="spin-pin-note" class="small muted" hidden></p>
+              </div>
               </div>
             </div>
 
