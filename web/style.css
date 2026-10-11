@@ -1520,3 +1520,5 @@ tr.flash > td { animation: flash-row 2.4s ease-out; }
 .pc-thumb { grid-area: thumb; width: 64px; height: 40px; object-fit: cover; border-radius: 6px; }
 .pc-thumb[hidden] { display: none; }
 @media (min-width: 900px) { .pc-grid { grid-template-columns: 250px minmax(0, 1fr); } .pc-diagram { position: sticky; top: 90px; } }
+.pc-demo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin-bottom: 12px; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--accent); background: var(--accent-soft); }
+.pc-demo[hidden] { display: none; }

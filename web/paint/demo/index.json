@@ -1,0 +1,150 @@
+{
+ "source": "data/processed/images (blurred demo photos)",
+ "method": "scripts/paintcheck_demo_crops.py",
+ "joints": [
+  {
+   "joint": "j1",
+   "a": "f_bumper",
+   "b": "lf_fender",
+   "photo": "CAR2.jpg",
+   "seam_px": 63,
+   "coverage": [
+    1.0,
+    0.992
+   ],
+   "file": "j1.jpg"
+  },
+  {
+   "joint": "j2",
+   "a": "lf_fender",
+   "b": "hood",
+   "photo": "CAR2.jpg",
+   "seam_px": 258,
+   "coverage": [
+    0.967,
+    1.0
+   ],
+   "file": "j2.jpg"
+  },
+  {
+   "joint": "j3",
+   "a": "lf_fender",
+   "b": "lf_door",
+   "photo": "CAR3.jpg",
+   "seam_px": 293,
+   "coverage": [
+    1.0,
+    1.0
+   ],
+   "file": "j3.jpg"
+  },
+  {
+   "joint": "j4",
+   "a": "lf_door",
+   "b": "lr_door",
+   "photo": "CAR3.jpg",
+   "seam_px": 226,
+   "coverage": [
+    1.0,
+    0.988
+   ],
+   "file": "j4.jpg"
+  },
+  {
+   "joint": "j5",
+   "a": "lr_door",
+   "b": "lr_quarter",
+   "photo": "CAR5.jpg",
+   "seam_px": 206,
+   "coverage": [
+    0.98,
+    1.0
+   ],
+   "file": "j5.jpg"
+  },
+  {
+   "joint": "j6",
+   "a": "lr_quarter",
+   "b": "r_bumper",
+   "photo": "CAR5.jpg",
+   "seam_px": 123,
+   "coverage": [
+    1.0,
+    1.0
+   ],
+   "file": "j6.jpg"
+  },
+  {
+   "joint": "j7",
+   "a": "lr_quarter",
+   "b": "trunk",
+   "photo": "CAR5.jpg",
+   "seam_px": 126,
+   "coverage": [
+    0.939,
+    1.0
+   ],
+   "file": "j7.jpg"
+  },
+  {
+   "joint": "j9",
+   "a": "r_bumper",
+   "b": "rr_quarter",
+   "photo": "CAR6.jpg",
+   "seam_px": 202,
+   "coverage": [
+    1.0,
+    1.0
+   ],
+   "file": "j9.jpg"
+  },
+  {
+   "joint": "j10",
+   "a": "rr_quarter",
+   "b": "rr_door",
+   "photo": "CAR6.jpg",
+   "seam_px": 253,
+   "coverage": [
+    0.987,
+    1.0
+   ],
+   "file": "j10.jpg"
+  },
+  {
+   "joint": "j12",
+   "a": "rf_door",
+   "b": "rf_fender",
+   "photo": "CAR8.jpg",
+   "seam_px": 226,
+   "coverage": [
+    1.0,
+    0.991
+   ],
+   "file": "j12.jpg"
+  },
+  {
+   "joint": "j13",
+   "a": "hood",
+   "b": "rf_fender",
+   "photo": "CAR8.jpg",
+   "seam_px": 295,
+   "coverage": [
+    1.0,
+    0.998
+   ],
+   "file": "j13.jpg"
+  },
+  {
+   "joint": "j14",
+   "a": "rf_fender",
+   "b": "f_bumper",
+   "photo": "CAR8.jpg",
+   "seam_px": 79,
+   "coverage": [
+    1.0,
+    1.0
+   ],
+   "file": "j14.jpg"
+  }
+ ]
+}

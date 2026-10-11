@@ -280,6 +280,7 @@ const E = {
   "Right side, front door to fender": ["Справа: передняя дверь — крыло", "O‘ng tomon: old eshik — qanot"],
   "Hood edge, right side": ["Край капота, справа", "Kapot cheti, o‘ng tomon"],
   "Front right corner, fender to bumper": ["Передний правый угол: крыло — бампер", "Old o‘ng burchak: qanot — bamper"],
+  "Use demo photos": ["Использовать демо-фото", "Demo suratlarni ishlatish"],
   "Loading…": ["Загрузка…", "Yuklanmoqda…"],
   // Shops
   "Body and paint shops near you (OpenStreetMap).": ["Кузовные и покрасочные мастерские рядом (OpenStreetMap).", "Yaqin atrofdagi kuzov va bo‘yash ustaxonalari (OpenStreetMap)."],
@@ -406,6 +407,7 @@ const RULES = [
   [/^Searching within (\d+) km of (.+)…$/, (m, l) => (l === "ru" ? `Поиск в радиусе ${m[1]} км…` : `${m[1]} km radiusda qidirilmoqda…`)],
   [/^No shops found within (\d+) km of (.+)\.$/, (m, l) => (l === "ru" ? `В радиусе ${m[1]} км мастерских не найдено.` : `${m[1]} km radiusda ustaxona topilmadi.`)],
   [/^(\d+) of (\d+) gaps measured$/, (m, l) => (l === "ru" ? `Измерено зазоров: ${m[1]} из ${m[2]}` : `${m[2]} tadan ${m[1]} ta tirqish o‘lchandi`)],
+  [/^Demo car: (\d+) gaps cut automatically from its (\d+) photos\.$/, (m, l) => (l === "ru" ? `Демо-автомобиль: ${m[1]} зазоров автоматически вырезаны из его ${m[2]} фото.` : `Demo avtomobil: ${m[2]} ta suratidan ${m[1]} ta tirqish avtomatik kesib olindi.`)],
   [/^Retake: (.+)$/, (m, l) => `${l === "ru" ? "Переснимите" : "Qayta oling"}: ${word(m[1], l)}`],
   [/^Uploading… (.+)$/, (m, l) => (l === "ru" ? `Загрузка… ${m[1]}` : `Yuklanmoqda… ${m[1]}`)],
   [/^(dent|scratch|crack|glass shatter|lamp broken|tire flat) \((minor|moderate|severe|not rated)\)$/, (m, l) => `${word(m[1], l)} (${word(m[2], l)})`],

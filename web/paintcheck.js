@@ -50,6 +50,10 @@ const svg = (tag, attrs) => {
 export function createPaintCheck(container, { onPanels } = {}) {
   const shots = {}; // jointId -> {orientation, result, thumb, img}
   container.innerHTML = `
+    <div class="pc-demo" hidden>
+      <span class="pc-demo-text small muted"></span>
+      <button type="button" class="btn btn-outline btn-sm pc-demo-btn">Use demo photos</button>
+    </div>
     <div class="pc-grid">
       <div class="pc-diagram">
         <div class="pc-svg"></div>
@@ -188,6 +192,40 @@ export function createPaintCheck(container, { onPanels } = {}) {
     }
     if (onPanels) onPanels(panels);
   }
+  // Demo car: gap photos cut automatically from its 9 blurred photos (scripts/paintcheck_demo_crops.py); the analysis
+  // below runs live on them exactly as on a phone photo.
+  const demoBox = container.querySelector(".pc-demo");
+  let demo = null;
+  fetch("paint/demo/index.json", { cache: "no-store" })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d) => {
+      if (!d || !Array.isArray(d.joints) || !d.joints.length) return;
+      demo = d.joints;
+      const photos = new Set(demo.map((x) => x.photo)).size;
+      demoBox.querySelector(".pc-demo-text").textContent = `Demo car: ${demo.length} gaps cut automatically from its ${photos} photos.`;
+      demoBox.hidden = false;
+    })
+    .catch(() => {});
+  demoBox.querySelector(".pc-demo-btn").addEventListener("click", async () => {
+    if (!demo) return;
+    const btn = demoBox.querySelector(".pc-demo-btn");
+    btn.disabled = true;
+    for (const d of demo) {
+      const j = JOINTS.find((x) => x.id === d.joint);
+      const li = list.querySelector(`[data-joint="${d.joint}"]`);
+      if (!j || !li) continue;
+      try {
+        const blob = await (await fetch(`paint/demo/${d.file}`)).blob();
+        const { img, thumb } = await loadImage(blob);
+        shots[j.id] = { orientation: "vertical", img, thumb, demo: d.photo };
+        analyse(j);
+      } catch (e) {
+        setState(li, `Could not read the photo: ${e.message}`, "err");
+      }
+    }
+    btn.disabled = false;
+  });
+
   update();
   return { shots };
 }
