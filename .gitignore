@@ -58,3 +58,6 @@ tools/
 # Brush GPU autotune cache
 target/
 var-cpu2/
+
+# Camry Parts Scan export (raw, unblurred input frames inside): never commit
+camry_parts_scan*.zip

@@ -241,6 +241,12 @@ def _hq_build(frames_dir: Path, out_dir: Path, steps: int, pins2d: Any, masks_di
     return build_hq(frames_dir, out_dir, steps=steps, pins2d=pins2d, masks_dir=masks_dir)
 
 
+def _parts3d_build(dataset: Path, device: str) -> dict[str, Any]:
+    from ..recon3d.parts3d import build_parts3d  # noqa: PLC0415
+
+    return build_parts3d(dataset, device=device)
+
+
 def read_view(out_dir: Path) -> dict[str, Any] | None:
     """Viewer orientation measured by the 3D worker (cameras.json) -> {center, up, forward0, radius}, or None."""
     try:
@@ -287,6 +293,7 @@ class Backends:
     project_pins: Callable[[Path, Any, Any], list[dict[str, Any]]] = _project_pins
     hq_available: Callable[[], tuple[bool, str]] = _hq_available
     hq_build: Callable[[Path, Path, int, Any, Path | None], dict[str, Any]] = _hq_build
+    parts3d_build: Callable[[Path, str], dict[str, Any]] = _parts3d_build
     load_palette: Callable[[], Any] = _load_palette
     recolor: Callable[[Any, Any, str], Any] = _recolor
 
@@ -635,6 +642,8 @@ class JobManager:
         view["recon3d"] = {k: v for k, v in (view.get("recon3d") or {}).items() if not k.startswith("_")}
         view["recon3d_hq"] = {k: v for k, v in (view.get("recon3d_hq") or _new_hq_state()).items()
                               if not k.startswith("_")}
+        if self.resolve_parts3d(job_id) is not None:
+            view["recon3d_hq"]["parts3d"] = f"{API_PREFIX}/{job_id}/parts3d.json"
         view["status_url"] = f"{API_PREFIX}/{job_id}"
         return {k: v for k, v in view.items() if not k.startswith("_")}
 
@@ -974,6 +983,18 @@ class JobManager:
                         finished_utc=utc_now())
         self._store_media(job_id, st.get("inspection_id"), {"recon3d_splat": url})
         self._register_build(job_id, "recon3d_hq")
+        try:  # parts 3D model from the same SfM (about 30 s on the GPU); optional, never fails the HQ build
+            p3 = self.backends.parts3d_build(out_dir, self.device or "cpu")
+            if not (p3 or {}).get("ok"):
+                log.warning("parts3d %s: %s", job_id, (p3 or {}).get("error"))
+        except Exception:
+            log.exception("parts3d %s failed", job_id)
+
+    def resolve_parts3d(self, job_id: str) -> Path | None:
+        """parts_cloud.json next to the served HQ splat (built here or attached by reuse), or None."""
+        splat = self.resolve_splat(job_id)
+        p = splat.parent / "parts_cloud.json" if splat is not None else None
+        return p if p is not None and p.is_file() and _contained(p, self.data_dir) else None
 
     def resolve_splat(self, job_id: str, full: bool = False) -> Path | None:
         """The served HQ splat (car crop when available) or, with full=True, the uncropped one."""

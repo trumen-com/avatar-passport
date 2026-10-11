@@ -29,7 +29,9 @@ const state = {
   tryonUrl: null,
   tab: "overview",
   initialTab: null,
-  pending3d: { cloud: null, hq: null }, // finished 3D models, mounted when the 3D tab is first opened
+  pending3d: { cloud: null, hq: null, parts: null }, // finished 3D models, mounted when the 3D tab is first opened
+  viewerParts: null,
+  viewerPartsUrl: null,
 };
 
 const capture = { video: null, vinPhoto: null, demo: false }; // demo: use the demo files already on the server
@@ -1571,7 +1573,8 @@ function keepWatching(job) {
 // The 3D models (the splat file is ~28 MB) are downloaded only once the 3D tab is opened.
 function mountPending3d() {
   if (state.tab !== "model3d") return;
-  const { cloud, hq } = state.pending3d;
+  const { cloud, hq, parts } = state.pending3d;
+  if (parts && state.viewerPartsUrl !== parts) mountPartsViewer(parts);
   if (hq && state.viewerSplat !== hq.url) mountHqViewer(hq.url, hq.pins, hq.view);
   if (cloud && state.viewerPly !== cloud.url) mountViewer(cloud.url, cloud.pins, cloud.view);
 }
@@ -1803,6 +1806,12 @@ function renderHq(h) {
         state.pending3d.hq = { url: splat, pins: confidentPins(h.pins), view: h.view || null };
         mountPending3d();
       }
+      const partsUrl = safeHref(h.parts3d);
+      $("#parts3d-card").hidden = !partsUrl;
+      if (partsUrl && state.viewerPartsUrl !== partsUrl) {
+        state.pending3d.parts = partsUrl;
+        mountPending3d();
+      }
       break;
     }
     case "error":
@@ -1813,6 +1822,23 @@ function renderHq(h) {
       break;
     default:
       break;
+  }
+}
+
+async function mountPartsViewer(url) {
+  state.viewerPartsUrl = url;
+  const box = $("#viewer-parts");
+  box.replaceChildren(el("p", { class: "small muted" }, "Loading the parts model…"));
+  try {
+    const [mod, data] = await Promise.all([import("./partsviewer.js"), apiJSON(url)]);
+    if (state.viewerParts) state.viewerParts.dispose();
+    state.viewerParts = mod.createPartsViewer(box, data);
+    const m = data.meta || {};
+    $("#parts3d-status").textContent = `${(m.parts || []).length} parts${m.source ? ` from ${m.source}` : ""}. Slide "Take apart" to split the car.`;
+  } catch (e) {
+    console.error(e);
+    box.replaceChildren(el("p", { class: "error" }, `The parts model could not be shown: ${e && e.message ? e.message : e}`));
+    state.viewerPartsUrl = null;
   }
 }
 

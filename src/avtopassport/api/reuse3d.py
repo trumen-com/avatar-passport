@@ -44,7 +44,8 @@ KINDS = ("recon3d", "recon3d_hq")
 HQ_DEVICE = "Vulkan GPU"
 # files copied for a reuse (the served file is always required; see required_files)
 DA3_FILES = ("points_web.ply", "points.ply", "cameras.json", "depth.npz", "result.json")
-HQ_FILES = ("splat_web.ply", "splat_car.ply", "splat.ply", "hq_report.json")
+HQ_FILES = ("splat_web.ply", "splat_car.ply", "splat.ply", "hq_report.json", "parts_cloud.json",
+            "parts_cloud_report.json")  # parts files are optional (older builds have none)
 REUSE_DIRS = {"recon3d": "recon3d_reused", "recon3d_hq": "recon3d_hq_reused"}
 
 _LOCK = threading.Lock()

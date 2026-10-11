@@ -242,6 +242,15 @@
         <!-- 3D model -->
         <div id="panel-model3d" class="tab-panel" role="tabpanel" aria-labelledby="tab-model3d" tabindex="-1" hidden>
           <p class="panel-intro">Drag to rotate. Pinch or scroll to zoom.</p>
+          <div id="parts3d-card" class="card" aria-labelledby="parts3d-title" hidden>
+            <h2 id="parts3d-title">Parts model <span class="badge ok">new</span></h2>
+            <p id="parts3d-status" class="small muted"></p>
+            <div id="viewer-parts"></div>
+            <details class="more">
+              <summary>Details</summary>
+              <p class="small muted" style="margin:0.4rem 0 0">Depth Anything V2 Small depth, aligned to the COLMAP camera poses, checked across neighbouring views, fused into 2 cm cells and labelled by the parts model. The number plate and everything off the car are left out. Method and viewer adapted from Camry Parts Scan by Team Trumen (WIUT Hackathon 2026).</p>
+            </details>
+          </div>
           <div id="hq-card" class="card" aria-labelledby="hq-title" hidden>
             <h2 id="hq-title">Detailed 3D model <span id="hq-badge" class="badge"></span></h2>
             <p id="hq-status" role="status"></p>

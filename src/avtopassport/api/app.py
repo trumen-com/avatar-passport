@@ -316,6 +316,15 @@ def create_app(*, settings: Settings | None = None, backends: Backends | None = 
         recon3d_hq.status is done; else 404."""
         return _splat(job_id, full=False)
 
+    @app.get("/api/inspections/{job_id}/parts3d.json")
+    def get_parts3d(job_id: str) -> FileResponse:
+        """Part-labelled 3D point cloud (viewer payload, see recon3d/parts_cloud.py); 404 until it is built."""
+        _job_or_404(job_id)
+        path = jobs.resolve_parts3d(job_id)
+        if path is None:
+            raise HTTPException(404, "parts 3D model not available")
+        return FileResponse(path, media_type="application/json", headers={"Cache-Control": "private, max-age=86400"})
+
     @app.get("/api/inspections/{job_id}/recon3d/splat_full.ply")
     def get_splat_full_ply(job_id: str) -> FileResponse:
         """The uncropped splats (car + background) when a car crop is served as splat.ply; else 404."""

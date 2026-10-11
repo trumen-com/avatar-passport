@@ -210,6 +210,9 @@ These feed `data/reference/repair_prices.csv` (built by `scripts/build_repair_pr
 | DejaVu Sans font (system package `fonts-dejavu-core`) | system | Bitstream Vera / DejaVu font licence (free, redistributable) | https://dejavu-fonts.github.io/License.html | Cyrillic text in the PDF |
 | three.js | 0.186.1 (CDN, jsdelivr) | MIT | https://github.com/mrdoob/three.js/blob/dev/LICENSE | 3D point-cloud viewer |
 | Spark (`@sparkjsdev/spark`) | 2.3.1 (CDN, jsdelivr) | MIT | https://github.com/sparkjsdev/spark | Gaussian-splat viewer (high-quality 3D, when available) |
+| Depth Anything V2 Small (`depth-anything/Depth-Anything-V2-Small-hf`, revision `5426e4f0f36572d16453bbda7a8389317b1bef99`) | via transformers 5.19.0 in `.venv-3d` | Apache-2.0 (Small only; Base/Large are CC BY-NC) | https://huggingface.co/depth-anything/Depth-Anything-V2-Small-hf | Per-frame depth for the parts 3D model |
+| transformers | 5.19.0 (`.venv-3d`) | Apache-2.0 | https://github.com/huggingface/transformers | Runs Depth Anything V2 Small |
+| Camry Parts Scan: method, tuned parameters, fusion code and point viewer, by Team Trumen (WIUT Hackathon 2026) | adapted into `src/avtopassport/recon3d/parts_cloud.py` and `web/partsviewer.js` | No licence stated; credited to its authors | https://github.com/trumen-com/road-vision (`guard/scan/`) | Part-labelled 3D point cloud: take apart, part colours, auto-rotate, part search |
 | Inter font | Google Fonts CSS2 API (latest) | SIL Open Font License 1.1 | https://github.com/rsms/inter/blob/master/LICENSE.txt | Web UI font; the page falls back to the system font when offline |
 | UI icons (inline SVG in `web/index.html`) | drawn for this repo in the style of Lucide; the car, box, palette, wrench, map-pin, file, moon, sun and link shapes follow Lucide's outlines | ISC (Lucide) | https://github.com/lucide-icons/lucide/blob/main/LICENSE | Sidebar, header and viewer icons |
 
