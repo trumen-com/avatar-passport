@@ -3,7 +3,7 @@
 
 import { getLang, partSearch, setLang, startTranslator } from "./i18n.js";
 
-const REPO_URL = ""; // e.g. "https://github.com/<org>/avtopassport"; the footer link is hidden while empty.
+const REPO_URL = "https://github.com/trumen-com/avatar-passport"; // e.g. "https://github.com/<org>/avtopassport"; the footer link is hidden while empty.
 
 const POLL_MS = 2000;          // job polling while queued/running
 const RECON_POLL_MS = 5000;    // 3D reconstruction polling after the passport is done
