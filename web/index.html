@@ -3,12 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#171b22" media="(prefers-color-scheme: dark)">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#ffffff">
   <meta name="description" content="AvtoPassport: a phone walkaround video becomes a verified digital condition passport tied to the car's VIN.">
   <title>AvtoPassport</title>
+  <!-- Inter (SIL OFL 1.1) from Google Fonts; falls back to the system font offline. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="style.css">
+  <script>try { if (localStorage.getItem("avto-theme") === "dark") document.documentElement.dataset.theme = "dark"; } catch (e) {}</script>
   <!-- three.js (MIT) and Spark (MIT, Gaussian splats) pinned; only loaded when a 3D model is ready (viewer3d.js is imported on demand). -->
   <script type="importmap">
   {
@@ -22,17 +26,56 @@
   <script type="module" src="app.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="./">Avto<span>Passport</span></a>
-    <span id="health" class="pill" role="status" aria-live="polite">Checking server&hellip;</span>
-  </header>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="./">
+        <svg class="brand-logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2.5 4.5 6.8v8.4c0 7 5 12.2 11.5 14.3 6.5-2.1 11.5-7.3 11.5-14.3V6.8Z" fill="var(--accent)"/><path d="M10.2 18.6v-3.1l1.6-3.6c.2-.5.7-.8 1.2-.8h6c.5 0 1 .3 1.2.8l1.6 3.6v3.1Z" fill="#fff"/><rect x="10.6" y="18.2" width="2.4" height="2.3" rx=".8" fill="#fff"/><rect x="19" y="18.2" width="2.4" height="2.3" rx=".8" fill="#fff"/><circle cx="12.9" cy="16.2" r="1" fill="var(--accent)"/><circle cx="19.1" cy="16.2" r="1" fill="var(--accent)"/></svg>
+        <span class="brand-text"><strong>AvtoPassport</strong><small>Vehicle passport</small></span>
+      </a>
 
-  <main>
-    <div id="health-banner" class="banner" role="alert" hidden></div>
+      <nav id="tabs" class="tabs" role="tablist" aria-label="Passport sections" hidden>
+        <button id="tab-overview" class="tab" type="button" role="tab" data-tab="overview" aria-controls="panel-overview" aria-selected="true" tabindex="0"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg><span class="tab-label">Car</span><span id="tabc-overview" class="tab-count"></span></button>
+        <button id="tab-model3d" class="tab" type="button" role="tab" data-tab="model3d" aria-controls="panel-model3d" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span class="tab-label">3D model</span><span id="tabc-model3d" class="tab-count"></span></button>
+        <button id="tab-tryon" class="tab" type="button" role="tab" data-tab="tryon" aria-controls="panel-tryon" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1a1.6 1.6 0 0 1 1.6-1.7h2c3.1 0 5.6-2.5 5.6-5.5C22 6 17.5 2 12 2Z"/></svg><span class="tab-label">Customize</span><span id="tabc-tryon" class="tab-count"></span></button>
+        <button id="tab-defects" class="tab" type="button" role="tab" data-tab="defects" aria-controls="panel-defects" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8Z"/></svg><span class="tab-label">Damage</span><span id="tabc-defects" class="tab-count"></span></button>
+        <button id="tab-shops" class="tab" type="button" role="tab" data-tab="shops" aria-controls="panel-shops" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-5.5 10.2-7.4 11.8a1 1 0 0 1-1.2 0C9.5 20.2 4 15 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg><span class="tab-label">Body shops</span><span id="tabc-shops" class="tab-count"></span></button>
+        <button id="tab-vin" class="tab" type="button" role="tab" data-tab="vin" aria-controls="panel-vin" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9v6M9 9v6M12.5 9v6M15 9v6M18 9v6"/></svg><span class="tab-label">VIN / History</span><span id="tabc-vin" class="tab-count"></span></button>
+        <button id="tab-report" class="tab" type="button" role="tab" data-tab="report" aria-controls="panel-report" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8M16 17H8M10 9H8"/></svg><span class="tab-label">Report</span><span id="tabc-report" class="tab-count"></span></button>
+      </nav>
+
+      <a id="new-btn" class="side-new" href="./"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg><span>New inspection</span></a>
+
+      <div id="car-card" class="car-card" hidden>
+        <img id="car-thumb" alt="" hidden>
+        <div id="car-name" class="car-name"></div>
+        <div id="car-meta" class="car-meta"></div>
+        <div class="car-vin-label">VIN</div>
+        <div id="car-vin" class="car-vin"></div>
+        <div id="car-badges" class="row" style="gap:0.35rem;margin-top:0.45rem"></div>
+      </div>
+    </aside>
+
+    <div class="content">
+      <header class="apphead">
+        <div class="apphead-title">
+          <h1 id="passport-title">New inspection</h1>
+          <p id="passport-sub">Turn a phone walkaround video into a verified condition passport.</p>
+        </div>
+        <div class="apphead-actions">
+          <span id="health" class="pill" role="status" aria-live="polite">Checking server&hellip;</span>
+          <button id="theme-btn" class="icon-btn" type="button" aria-label="Switch to dark mode" title="Dark mode"><svg class="ico i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg><svg class="ico i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></svg></button>
+          <button id="share-btn" class="btn" type="button" aria-label="Share link" hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg><span class="btn-label">Share</span></button>
+          <a id="pdf-link-top" class="btn btn-primary" href="#" download hidden><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8M16 17H8M10 9H8"/></svg>Export passport</a>
+        </div>
+        <p id="share-status" class="small muted share-status" role="status"></p>
+      </header>
+
+      <main>
+        <div id="health-banner" class="banner" role="alert" hidden></div>
 
     <!-- ========== 1. Capture ========== -->
     <section id="capture" class="card" aria-labelledby="capture-title">
-      <h1 id="capture-title">New inspection</h1>
+      <h2 id="capture-title">Record or upload</h2>
       <p class="lead">Record a 30&ndash;60&nbsp;s walkaround of the car and a close-up of the VIN plate. The passport is built from these files.</p>
 
       <form id="capture-form" novalidate>
@@ -100,134 +143,186 @@
       </div>
     </section>
 
-    <!-- ========== 2. Passport ========== -->
-    <section id="passport" class="stack" hidden aria-labelledby="passport-title">
-      <div class="card">
-        <div class="row" style="justify-content: space-between;">
-          <h1 id="passport-title" style="margin:0">Condition passport</h1>
-          <div class="row">
-            <button id="share-btn" class="btn btn-sm" type="button">Share link</button>
-            <a id="pdf-link-top" class="btn btn-sm btn-primary" href="#" download hidden>PDF</a>
-          </div>
-        </div>
-        <p id="share-status" class="small muted" role="status" style="margin:0.4rem 0 0"></p>
-      </div>
-
-      <!-- VIN card -->
-      <div id="vin-card" class="card" aria-labelledby="vin-title">
-        <h2 id="vin-title">VIN <span id="vin-status" class="badge"></span></h2>
-        <div id="vin-value" class="vin-value"></div>
-        <p class="note">Please confirm the VIN against the car or its documents: automatic reading (OCR) can confuse similar characters.</p>
-        <div id="vin-decode"></div>
-      </div>
-
-      <!-- Spin viewer -->
-      <div id="spin-card" class="card" aria-labelledby="spin-title">
-        <h2 id="spin-title">360&deg; view <span id="spin-count" class="badge"></span></h2>
-        <p class="small muted">Drag or swipe sideways to turn the car. Red boxes are detected damage.</p>
-        <div id="spin-empty" class="note" hidden></div>
-        <div id="spin-wrap">
-          <div id="spin-stage" class="spin-stage" tabindex="0" role="img" aria-label="360 degree view of the car. Use left and right arrow keys to rotate.">
-            <div id="spin-frame" class="spin-frame">
-              <img id="spin-img" alt="" draggable="false">
-              <div id="spin-pins" class="spin-pins"></div>
+        <!-- ========== 2. Passport: one panel per tab (tabs in the sidebar, a top bar on phones) ========== -->
+        <section id="passport" class="passport" hidden aria-labelledby="passport-title">
+      <div class="panels">
+        <!-- Car (overview): 360 viewer + inspection summary -->
+        <div id="panel-overview" class="tab-panel" role="tabpanel" aria-labelledby="tab-overview" tabindex="-1">
+          <div class="overview">
+            <div id="spin-card" class="card viewer-card" aria-labelledby="spin-title">
+              <h2 id="spin-title" class="vh">360&deg; view <span id="spin-count"></span></h2>
+              <div id="spin-empty" class="note" hidden></div>
+              <div id="spin-wrap">
+                <div class="stage-wrap">
+                  <div id="spin-stage" class="spin-stage" tabindex="0" role="img" aria-label="360 degree view of the car. Use left and right arrow keys to rotate.">
+                    <div id="spin-frame" class="spin-frame">
+                      <img id="spin-img" alt="" draggable="false">
+                      <div id="spin-pins" class="spin-pins"></div>
+                    </div>
+                    <div id="spin-loading" class="spin-overlay-msg" hidden></div>
+                  </div>
+                  <span class="viewer-chip"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg><span id="spin-chip">&hellip;</span></span>
+                  <div class="viewer-tools" role="group" aria-label="Turn the car">
+                    <button id="spin-prev" class="tool-btn" type="button" aria-label="Turn left" title="Turn left"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
+                    <button id="spin-next" class="tool-btn" type="button" aria-label="Turn right" title="Turn right"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+                    <button id="spin-play" class="tool-btn" type="button" aria-label="Turn automatically" aria-pressed="false" title="Turn automatically"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5Z"/></svg></button>
+                  </div>
+                  <div class="viewer-foot">
+                    <div class="legend" aria-label="Damage box colours">
+                      <span class="lg sev-minor">Minor</span><span class="lg sev-moderate">Moderate</span><span class="lg sev-severe">Severe</span><span class="lg low">Low confidence</span>
+                    </div>
+                    <span class="viewer-hint">Drag to turn &middot; &larr; &rarr; keys</span>
+                  </div>
+                </div>
+                <input id="spin-range" type="range" min="0" max="0" value="0" step="1" aria-label="Frame">
+                <p id="spin-caption" class="small muted" style="margin:0.2rem 0 0"></p>
+                <div id="spin-pin-frames" class="chips"></div>
+                <p id="spin-pin-note" class="small muted" hidden></p>
+              </div>
             </div>
-            <div id="spin-loading" class="spin-overlay-msg" hidden></div>
+
+            <aside class="summary" aria-labelledby="summary-title">
+              <h2 id="summary-title" class="summary-title">Inspection summary</h2>
+              <div class="card sum-card">
+                <div class="sum-big"><span id="sum-count" class="sum-num">&hellip;</span><span id="sum-label" class="sum-label"></span></div>
+                <div id="sum-chips" class="sev-chips"></div>
+                <p id="sum-note" class="small muted" style="margin:0.5rem 0 0"></p>
+                <div class="sum-cost">
+                  <span class="small muted">Total estimated repair cost</span>
+                  <strong id="sum-total">&hellip;</strong>
+                  <span id="sum-total-note" class="small muted"></span>
+                </div>
+                <button class="btn btn-outline" type="button" data-go="defects">View damage list <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+              </div>
+              <div class="card rows-card">
+                <button class="row-link" type="button" data-go="vin"><span class="rl-label">VIN</span><span id="tile-vin" class="rl-value vin-mono">&hellip;</span><span id="tile-vin-sub" class="rl-sub"></span><svg class="ico rl-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+                <button class="row-link" type="button" data-go="vin"><span class="rl-label">Since last inspection</span><span id="tile-diff" class="rl-value">&hellip;</span><span id="tile-diff-sub" class="rl-sub"></span><svg class="ico rl-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+                <button class="row-link" type="button" data-go="model3d"><span class="rl-label">3D model</span><span id="tile-3d" class="rl-value">&hellip;</span><span id="tile-3d-sub" class="rl-sub"></span><svg class="ico rl-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+                <button class="row-link" type="button" data-go="report"><span class="rl-label">Report</span><span id="tile-report" class="rl-value">&hellip;</span><span id="tile-report-sub" class="rl-sub"></span><svg class="ico rl-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
+              </div>
+              <p class="hint-line"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 16.5v-5M12 8h.01"/></svg><span>Drag the car sideways to turn it. Coloured boxes mark detected damage; tap a part below to see its repair estimate.</span></p>
+              <h3 id="parts-title" class="parts-title">Parts with findings</h3>
+              <ul id="parts-list" class="parts-list"></ul>
+            </aside>
           </div>
-          <div class="spin-controls">
-            <button id="spin-prev" class="btn" type="button" aria-label="Previous frame">&#9664;</button>
-            <input id="spin-range" type="range" min="0" max="0" value="0" step="1" aria-label="Frame">
-            <button id="spin-next" class="btn" type="button" aria-label="Next frame">&#9654;</button>
+        </div>
+
+        <!-- VIN & history -->
+        <div id="panel-vin" class="tab-panel" role="tabpanel" aria-labelledby="tab-vin" tabindex="-1" hidden>
+          <p class="panel-intro">The car&rsquo;s identity, read from the VIN plate photo, and what changed since its last AvtoPassport inspection.</p>
+          <div id="vin-card" class="card" aria-labelledby="vin-title">
+            <h2 id="vin-title">VIN <span id="vin-status" class="badge"></span></h2>
+            <div id="vin-value" class="vin-value"></div>
+            <p class="note">Please confirm the VIN against the car or its documents: automatic reading (OCR) can confuse similar characters.</p>
+            <div id="vin-decode"></div>
           </div>
-          <p id="spin-caption" class="small muted" style="margin:0.4rem 0 0"></p>
-          <div id="spin-pin-frames" class="chips"></div>
-          <p id="spin-pin-note" class="small muted" hidden></p>
+          <div id="diff-card" class="card" aria-labelledby="diff-title">
+            <h2 id="diff-title">New since last inspection</h2>
+            <div id="diff-body"></div>
+            <div id="history-body"></div>
+          </div>
+        </div>
+
+        <!-- Defects -->
+        <div id="panel-defects" class="tab-panel" role="tabpanel" aria-labelledby="tab-defects" tabindex="-1" hidden>
+          <p class="panel-intro">Every finding from the walkaround video with its severity, the suggested repair and a price from local listings. The boxes on the car are in the <a href="#overview">Car</a> tab.</p>
+          <div id="damage-card" class="card" aria-labelledby="damage-title">
+            <h2 id="damage-title">Damage and repair cost <span id="damage-count" class="badge"></span></h2>
+            <div id="damage-body"></div>
+            <div id="damage-total" class="total" hidden></div>
+            <p class="small muted" style="margin-top:0.6rem">Prices are &ldquo;from&rdquo; prices from our local price table; tap a price to see where it comes from.</p>
+          </div>
+        </div>
+
+        <!-- 3D model -->
+        <div id="panel-model3d" class="tab-panel" role="tabpanel" aria-labelledby="tab-model3d" tabindex="-1" hidden>
+          <p class="panel-intro">A 3D model of the car, rebuilt on the server from the same blurred frames. One finger (or the mouse) rotates; two fingers or the wheel zoom.</p>
+          <div id="hq-card" class="card" aria-labelledby="hq-title" hidden>
+            <h2 id="hq-title">High-quality 3D (Gaussian splats) <span id="hq-badge" class="badge"></span></h2>
+            <p id="hq-status" role="status"></p>
+            <div id="viewer-hq" hidden></div>
+            <p id="hq-crop" class="small muted"></p>
+            <p id="hq-error" class="error" hidden></p>
+            <p class="small muted">Camera poses from COLMAP structure-from-motion, then Brush Gaussian-splat training, on the same blurred frames. Requires a GPU worker; not available on the CPU-only public deployment.</p>
+          </div>
+          <div id="recon-card" class="card" aria-labelledby="recon-title">
+            <h2 id="recon-title">3D point cloud <span id="recon-badge" class="badge"></span></h2>
+            <p id="recon-status" role="status"></p>
+            <div id="viewer3d" hidden></div>
+            <p id="recon-error" class="error" hidden></p>
+            <div id="recon-pins"></div>
+            <p class="small muted">Fast reconstruction (Depth Anything 3) from the blurred walkaround frames, built after the passport is returned.</p>
+          </div>
+        </div>
+
+        <!-- Customize (paint try-on) -->
+        <div id="panel-tryon" class="tab-panel" role="tabpanel" aria-labelledby="tab-tryon" tabindex="-1" hidden>
+          <p class="panel-intro">See the car in another paint colour. Choose a view of the car with the slider, then tap a colour.</p>
+          <div id="tryon-card" class="card" aria-labelledby="tryon-title">
+            <h2 id="tryon-title">Paint try-on</h2>
+            <div class="tryon-layout">
+              <div class="tryon-view">
+                <figure class="tryon-figure" id="tryon-figure" hidden>
+                  <img id="tryon-img" alt="The car in the selected paint colour">
+                  <figcaption class="small muted"><span id="tryon-label"></span></figcaption>
+                </figure>
+                <div class="spin-controls" id="tryon-controls" hidden>
+                  <button id="tryon-prev" class="btn" type="button" aria-label="Previous view">&#9664;</button>
+                  <input id="tryon-range" type="range" min="0" max="0" value="0" step="1" aria-label="View of the car">
+                  <button id="tryon-next" class="btn" type="button" aria-label="Next view">&#9654;</button>
+                </div>
+              </div>
+              <div class="tryon-pick">
+                <h3 style="margin-top:0">Colours</h3>
+                <div id="palette-status" class="small muted"></div>
+                <div id="swatches" class="swatches" role="group" aria-label="Paint colours"></div>
+                <p id="tryon-status" class="small" role="status"></p>
+                <p class="small muted">How it works: only the hue of the painted panels changes, and the car&rsquo;s own light and shade are kept, so it still looks like the real photo. A light car therefore stays light: dark colours such as black or dark grey cannot be shown this way and are not offered. Colours are swatches from the BYD Uzbekistan website, not factory paint codes.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Body shops -->
+        <div id="panel-shops" class="tab-panel" role="tabpanel" aria-labelledby="tab-shops" tabindex="-1" hidden>
+          <p class="panel-intro">Body-repair and paint shops near you, from OpenStreetMap. Your location is used only for this search.</p>
+          <div id="shops-card" class="card" aria-labelledby="shops-title">
+            <h2 id="shops-title">Nearby body shops</h2>
+            <div class="row">
+              <button id="shops-geo" class="btn btn-primary" type="button">Find nearby body shops</button>
+              <button id="shops-tashkent" class="btn" type="button">Use Tashkent centre (41.3111, 69.2797)</button>
+            </div>
+            <p id="shops-status" class="small" role="status" style="margin-top:0.6rem"></p>
+            <ul id="shops-list" class="shops-list"></ul>
+            <p id="shops-attr" class="attribution" hidden></p>
+          </div>
+        </div>
+
+        <!-- Report & verification -->
+        <div id="panel-report" class="tab-panel" role="tabpanel" aria-labelledby="tab-report" tabindex="-1" hidden>
+          <p class="panel-intro">Download the passport as a PDF. The SHA-256 fingerprint of the frames lets anyone check that the inspection was not changed afterwards.</p>
+          <div id="verify-card" class="card" aria-labelledby="verify-title">
+            <h2 id="verify-title">Report and verification</h2>
+            <div class="row" id="report-links"></div>
+            <dl class="kv" id="verify-kv" style="margin-top:0.75rem"></dl>
+            <p class="note info" style="margin-top:0.75rem">Privacy: plates and faces are blurred before anything is stored.</p>
+            <details class="more">
+              <summary>Processing details</summary>
+              <div id="processing-body"></div>
+            </details>
+          </div>
         </div>
       </div>
 
-      <!-- Damage list -->
-      <div id="damage-card" class="card" aria-labelledby="damage-title">
-        <h2 id="damage-title">Damage <span id="damage-count" class="badge"></span></h2>
-        <div id="damage-body"></div>
-        <div id="damage-total" class="total" hidden></div>
-        <p class="small muted" style="margin-top:0.6rem">Prices are &ldquo;from&rdquo; prices from our local price table; tap a price to see where it comes from.</p>
-      </div>
+        </section>
+      </main>
 
-      <!-- Diff vs previous inspection -->
-      <div id="diff-card" class="card" aria-labelledby="diff-title">
-        <h2 id="diff-title">New since last inspection</h2>
-        <div id="diff-body"></div>
-        <div id="history-body"></div>
-      </div>
-
-      <!-- Paint try-on -->
-      <div id="tryon-card" class="card" aria-labelledby="tryon-title">
-        <h2 id="tryon-title">Paint try-on</h2>
-        <p class="small muted">Pick a colour; it is applied to the frame currently shown in the 360&deg; view.</p>
-        <div id="palette-status" class="small muted"></div>
-        <div id="swatches" class="swatches" role="group" aria-label="Paint colours"></div>
-        <figure class="tryon-figure" id="tryon-figure" hidden>
-          <img id="tryon-img" alt="Car recoloured with the selected paint colour">
-          <figcaption class="small muted">
-            <span id="tryon-label"></span><br>
-            AI-free colour shift of the real photo; white cars appear as a tint.
-          </figcaption>
-        </figure>
-        <p id="tryon-status" class="small" role="status"></p>
-      </div>
-
-      <!-- 3D model -->
-      <div id="recon-card" class="card" aria-labelledby="recon-title">
-        <h2 id="recon-title">3D model <span id="recon-badge" class="badge"></span></h2>
-        <p id="recon-status" role="status"></p>
-        <div id="viewer3d" hidden></div>
-        <p id="recon-error" class="error" hidden></p>
-        <div id="recon-pins"></div>
-        <p class="small muted">Reconstructed on the server from the blurred walkaround frames, after the passport is returned. One finger rotates, two fingers zoom and pan.</p>
-      </div>
-
-      <!-- Optional high-quality 3D (shown only when the server has a GPU worker for it) -->
-      <div id="hq-card" class="card" aria-labelledby="hq-title" hidden>
-        <h2 id="hq-title">High-quality 3D (Gaussian splats) <span id="hq-badge" class="badge"></span></h2>
-        <p id="hq-status" role="status"></p>
-        <div id="viewer-hq" hidden></div>
-        <p id="hq-crop" class="small muted"></p>
-        <p id="hq-error" class="error" hidden></p>
-        <p class="small muted">Camera poses from COLMAP structure-from-motion, then Brush Gaussian-splat training, on the same blurred frames. Requires a GPU worker; not available on the CPU-only public deployment.</p>
-      </div>
-
-      <!-- Body shops -->
-      <div id="shops-card" class="card" aria-labelledby="shops-title">
-        <h2 id="shops-title">Nearby body shops</h2>
-        <div class="row">
-          <button id="shops-geo" class="btn btn-primary" type="button">Find nearby body shops</button>
-          <button id="shops-tashkent" class="btn" type="button">Use Tashkent centre (41.3111, 69.2797)</button>
-        </div>
-        <p id="shops-status" class="small" role="status" style="margin-top:0.6rem"></p>
-        <ul id="shops-list" class="shops-list"></ul>
-        <p id="shops-attr" class="attribution" hidden></p>
-      </div>
-
-      <!-- Verification -->
-      <div id="verify-card" class="card" aria-labelledby="verify-title">
-        <h2 id="verify-title">Verification</h2>
-        <dl class="kv" id="verify-kv"></dl>
-        <div class="row" id="report-links"></div>
-        <p class="note info" style="margin-top:0.75rem">Privacy: plates and faces are blurred before anything is stored.</p>
-        <details class="more">
-          <summary>Processing details</summary>
-          <div id="processing-body"></div>
-        </details>
-      </div>
-
-      <button id="new-btn" class="btn btn-block" type="button">Start a new inspection</button>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <a id="repo-link" href="#" rel="noopener" hidden>Source code (AGPL-3.0)</a>
-    <a href="sandbox.html">Registry connector &mdash; sandbox (synthetic data)</a>
-    <span id="version-text"></span>
-  </footer>
+      <footer class="site-footer">
+        <a id="repo-link" href="#" rel="noopener" hidden>Source code (AGPL-3.0)</a>
+        <a href="sandbox.html">Registry connector &mdash; sandbox (synthetic data)</a>
+        <span id="version-text"></span>
+      </footer>
+    </div>
+  </div>
 </body>
 </html>

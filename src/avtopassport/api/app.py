@@ -103,6 +103,16 @@ def _findings_of(inspection: dict[str, Any]) -> list[Any]:
     return list((result or {}).get("findings") or []) if isinstance(result, dict) else []
 
 
+def _tryon_colours(palette: Any) -> Any:
+    """Drop swatches marked "tryon": false. The try-on keeps each pixel's lightness and changes only the hue, so
+    dark neutral swatches (black, dark grey) would look like the original car on a light car."""
+    if isinstance(palette, dict) and isinstance(palette.get("colours"), list):
+        return {**palette, "colours": _tryon_colours(palette["colours"])}
+    if isinstance(palette, list):
+        return [c for c in palette if not (isinstance(c, dict) and c.get("tryon") is False)]
+    return palette
+
+
 def create_app(*, settings: Settings | None = None, backends: Backends | None = None,
                shops: ShopFinder | None = None, web_dir: Path | None = None,
                persister: Persister | None = None) -> FastAPI:
@@ -353,9 +363,9 @@ def create_app(*, settings: Settings | None = None, backends: Backends | None = 
 
     @app.get("/api/palette")
     def palette() -> Any:
-        """tryon.recolor.load_palette(): paint colours with their source."""
+        """tryon.recolor.load_palette() minus the swatches marked "tryon": false (see colours.json tryon_note)."""
         try:
-            return jsonable(jobs.backends.load_palette())
+            return jsonable(_tryon_colours(jobs.backends.load_palette()))
         except Exception as exc:
             raise HTTPException(503, f"palette unavailable: {type(exc).__name__}: {exc}") from exc
 

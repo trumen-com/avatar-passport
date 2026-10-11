@@ -1,11 +1,12 @@
 {
   "source_note": "Colour swatches shown on the official BYD Uzbekistan model pages (bydauto.uz), read on 2026-10-10 during Phase 0 research (docs/research/phase0_findings_deploy_market.md, section 9). Each hex value is the colour of the website swatch, which only approximates the real paint. These are not factory paint codes. The name 'Midnight Blue' for the BYD Yuan Up DM-i swatch was inferred from the page text, because the swatch has no label of its own. No Toyota colours are included: the Toyota Central Asia pages had no colour data.",
   "retrieved_on": "2026-10-10",
+  "tryon_note": "Entries with \"tryon\": false are kept as reference data but not offered in the paint try-on. The try-on keeps each pixel's lightness and changes only the hue (src/avtopassport/tryon/recolor.py), so dark neutral colours (black, dark grey, dark silver) look like the original car on a light car. Checked on the demo car on 2026-10-11.",
   "colours": [
     {"name": "White", "model": "BYD Chazor", "hex": "#FFFFFF", "source_url": "https://bydauto.uz/ru/chazor", "kind": "website swatch, not factory paint code"},
-    {"name": "Gray", "model": "BYD Chazor", "hex": "#566270", "source_url": "https://bydauto.uz/ru/chazor", "kind": "website swatch, not factory paint code"},
-    {"name": "Black", "model": "BYD Chazor", "hex": "#1A232C", "source_url": "https://bydauto.uz/ru/chazor", "kind": "website swatch, not factory paint code"},
-    {"name": "Silver", "model": "BYD Song Plus DM-i", "hex": "#505156", "source_url": "https://bydauto.uz/en/song-dmi-champion", "kind": "website swatch, not factory paint code"},
+    {"name": "Gray", "model": "BYD Chazor", "hex": "#566270", "source_url": "https://bydauto.uz/ru/chazor", "kind": "website swatch, not factory paint code", "tryon": false},
+    {"name": "Black", "model": "BYD Chazor", "hex": "#1A232C", "source_url": "https://bydauto.uz/ru/chazor", "kind": "website swatch, not factory paint code", "tryon": false},
+    {"name": "Silver", "model": "BYD Song Plus DM-i", "hex": "#505156", "source_url": "https://bydauto.uz/en/song-dmi-champion", "kind": "website swatch, not factory paint code", "tryon": false},
     {"name": "Midnight Blue", "model": "BYD Yuan Up DM-i", "hex": "#2A3678", "source_url": "https://bydauto.uz/ru/yuan-up-dmi", "kind": "website swatch, not factory paint code"},
     {"name": "Atlantis Blue", "model": "BYD Ti7", "hex": "#728FB3", "source_url": "https://bydauto.uz/en/ti7", "kind": "website swatch, not factory paint code"},
     {"name": "Emerald Green", "model": "BYD Ti7", "hex": "#028377", "source_url": "https://bydauto.uz/en/ti7", "kind": "website swatch, not factory paint code"},

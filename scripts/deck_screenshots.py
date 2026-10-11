@@ -2,7 +2,8 @@
 
 Usage (app running on localhost:8000):
     .venv/bin/python scripts/deck_screenshots.py <job id> docs/assets/screenshots --width 430
-Captures the viewport at each section (VIN card, 360 view, damage list, diff, try-on, 3D viewers, verification).
+Opens each passport tab (car, 3D model, customize, damage, body shops, VIN / history, report) and captures the
+viewport at each section.
 Every VIN-like string on the page (17 chars of the VIN alphabet) is replaced by its first 11 characters + "******"
 before any capture, so the committed images never contain a full VIN. The page shows only blurred frames.
 """
@@ -33,17 +34,29 @@ for (const i of document.querySelectorAll("input")) { if (re.test(i.value)) { i.
 return n;
 """
 
-SECTIONS = [  # (file name, CSS selector to scroll to)
-    ("01_vin_card", "#vin-card"),
-    ("02_spin_view", "#spin-card"),
-    ("03_damage", "#damage-card"),
-    ("04_diff", "#diff-card"),
-    ("05_tryon", "#tryon-card"),
-    ("06_3d_cloud", "#recon-card"),
-    ("07_3d_hq", "#hq-card"),
-    ("08_shops", "#shops-card"),
-    ("09_verification", "#verify-card"),
+SECTIONS = [  # (file name, tab, CSS selector to scroll to; None = top of the page)
+    ("00_car", "overview", None),
+    ("01_summary", "overview", "#summary-title"),
+    ("02_damage", "defects", None),
+    ("03_3d_hq", "model3d", None),
+    ("04_3d_cloud", "model3d", "#recon-card"),
+    ("05_customize", "tryon", None),
+    ("06_shops", "shops", None),
+    ("07_vin_history", "vin", None),
+    ("08_diff", "vin", "#diff-card"),
+    ("09_report", "report", None),
 ]
+
+SHOW_JS = """
+location.hash = arguments[0];
+const sel = arguments[1];
+if (!sel) { window.scrollTo(0, 0); return true; }
+const e = document.querySelector(sel);
+if (!e || e.hidden) return false;
+e.style.scrollMarginTop = getComputedStyle(document.querySelector('.panels')).scrollMarginTop;
+e.scrollIntoView({block: 'start'});
+return true;
+"""
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -69,16 +82,19 @@ def main(argv: list[str] | None = None) -> int:
                                                  "args": []})["value"]:
                 break
             time.sleep(1)
-        time.sleep(25)  # let both 3D viewers (point cloud + 28 MB splat) load
+        time.sleep(3)
         masked = m.cmd("WebDriver:ExecuteScript", {"script": MASK_JS, "args": []})["value"]
         print(f"masked {masked} VIN strings")
-        for name, sel in SECTIONS:
-            ok = m.cmd("WebDriver:ExecuteScript", {"script": "const e = document.querySelector(arguments[0]);"
-                                                   "if (!e) return false; e.scrollIntoView({block: 'start'});"
-                                                   "window.scrollBy(0, -8); return true;", "args": [sel]})["value"]
+        seen_3d = False
+        for name, tab, sel in SECTIONS:
+            ok = m.cmd("WebDriver:ExecuteScript", {"script": SHOW_JS, "args": [tab, sel]})["value"]
             if not ok:
-                print(f"skip {name}: {sel} not found")
+                print(f"skip {name}: {sel} not shown")
                 continue
+            if tab == "model3d" and not seen_3d:
+                seen_3d = True
+                time.sleep(25)  # the 3D models are loaded when their tab is first opened (point cloud + 28 MB splat)
+                m.cmd("WebDriver:ExecuteScript", {"script": SHOW_JS, "args": [tab, sel]})
             time.sleep(2.5)
             m.cmd("WebDriver:ExecuteScript", {"script": MASK_JS, "args": []})
             png = m.cmd("WebDriver:TakeScreenshot", {"hash": False, "full": False})["value"]

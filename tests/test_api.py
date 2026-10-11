@@ -418,6 +418,14 @@ def test_palette(client: TestClient) -> None:
     assert r.status_code == 200 and r.json()["colours"][0]["hex"] == "#FFFFFF"
 
 
+def test_tryon_colours_drops_only_marked_swatches() -> None:
+    from avtopassport.api.app import _tryon_colours
+    pal = [{"name": "A", "hex": "#FFFFFF"}, {"name": "B", "hex": "#000000", "tryon": False},
+           {"name": "C", "hex": "#2A3678", "tryon": True}]
+    assert [c["name"] for c in _tryon_colours(pal)] == ["A", "C"]
+    assert [c["name"] for c in _tryon_colours({"colours": pal, "x": 1})["colours"]] == ["A", "C"]
+
+
 def test_sandbox_registry_carries_synthetic_badge(client: TestClient) -> None:
     items = client.get("/api/sandbox/registry").json()
     assert isinstance(items, list) and items
@@ -571,6 +579,7 @@ def test_real_passport_and_tryon_modules_end_to_end(tmp_path: Path) -> None:
         assert [(f["part"], f["damage"]) for f in h["diff_latest"]["new"]] == [("left_front_door", "dent")]
         pal = c.get("/api/palette").json()
         assert pal and all("hex" in p for p in pal)
+        assert "White" in {p["name"] for p in pal} and "Black" not in {p["name"] for p in pal}  # tryon: false
         r = c.get(f"/api/inspections/{second['id']}/tryon", params={"colour": pal[0]["hex"].lstrip("#")})
         assert r.status_code == 200 and r.headers["content-type"] == "image/jpeg"
         assert (tmp_path / "data" / "passports.sqlite").is_file()

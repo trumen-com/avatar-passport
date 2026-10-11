@@ -27,6 +27,9 @@ const state = {
   palette: null,
   tryonToken: 0,
   tryonUrl: null,
+  tab: "overview",
+  initialTab: null,
+  pending3d: { cloud: null, hq: null }, // finished 3D models, mounted when the 3D tab is first opened
 };
 
 const capture = { video: null, vinPhoto: null };
@@ -117,6 +120,11 @@ function fmtDate(iso) {
   return `${d.toLocaleString()} (${iso})`;
 }
 
+function fmtDateShort(iso) {
+  const d = iso ? new Date(iso) : null;
+  return d && !Number.isNaN(d.getTime()) ? d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
+}
+
 function fmtMs(ms) {
   if (!Number.isFinite(ms)) return "";
   return ms >= 1000 ? `${(ms / 1000).toFixed(2)} s` : `${Math.round(ms)} ms`;
@@ -125,6 +133,11 @@ function fmtMs(ms) {
 function humanize(s) {
   if (s == null || s === "") return "unknown";
   return String(s).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function sentence(s) {
+  const t = humanize(s);
+  return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
 function pct(x) {
@@ -387,8 +400,7 @@ function inspectionUrl(id) {
 function setShareUrl(id) {
   const u = new URL(location.href);
   u.searchParams.set("inspection", id);
-  u.hash = "";
-  history.replaceState(null, "", u.pathname + u.search);
+  history.replaceState(null, "", u.pathname + u.search + (tabFromHash() ? location.hash : ""));
 }
 
 function startJob(id, statusUrl) {
@@ -497,14 +509,226 @@ function renderPassport(job) {
     pdfTop.hidden = true;
   }
 
+  const findings = Array.isArray(r.findings) ? r.findings : [];
+  spin.sevByKey = new Map(findings.map((f) => [`${f.part}|${f.damage}`, f.severity]));
   renderVin(r, extra);
   setupSpin(media, extra);
   renderDamage(r);
+  renderSummary(r);
+  renderCarCard(r, extra);
   renderDiff(job, r);
   renderHistory(r, job);
   setupTryon();
   renderVerification(job, r, extra, media);
+  const car = carInfo(extra);
+  $("#passport-title").textContent = car.name ? `${car.name}${car.d.model_year != null ? ` · ${car.d.model_year}` : " · condition passport"}` : "Condition passport";
+  $("#passport-sub").textContent = [`Inspection ${String(job.id ?? state.jobId).slice(0, 8)}`, fmtDateShort(r.created_utc)].filter(Boolean).join(" · ");
+  $("#tabs").hidden = false;
+  $("#share-btn").hidden = false;
+  document.body.classList.add("has-passport");
+  showTab(state.initialTab || tabFromHash() || "overview", { scroll: false });
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ---------- sidebar car card and the Car tab's inspection summary (only data the server returned)
+
+function titleCase(s) {
+  const t = String(s || "").trim();
+  return t.length > 3 && t === t.toUpperCase() ? t.toLowerCase().replace(/\b\p{L}/gu, (c) => c.toUpperCase()) : t;
+}
+
+function carInfo(extra) {
+  const d = extra && extra.vin_decode && typeof extra.vin_decode === "object" ? extra.vin_decode : {};
+  const make = d.make || d.manufacturer;
+  return { d, name: [make ? titleCase(make) : null, d.model].filter(Boolean).join(" ") };
+}
+
+function renderCarCard(r, extra) {
+  const { d, name } = carInfo(extra);
+  const thumb = $("#car-thumb");
+  thumb.hidden = !spin.urls.length;
+  if (spin.urls.length) thumb.src = spin.urls[0];
+  $("#car-name").textContent = name || "Make not decoded";
+  const meta = [];
+  if (d.model_year != null) meta.push(`Model year ${d.model_year}`);
+  else if (Array.isArray(d.model_year_candidates) && d.model_year_candidates.length) meta.push(`Model year ${d.model_year_candidates.join(" or ")}`);
+  if (d.country) meta.push(titleCase(d.country));
+  $("#car-meta").textContent = meta.join(" · ");
+  $("#car-vin").textContent = r.vin || extra.vin_masked || "not read";
+  const st = VIN_STATUS[r.vin_status] || [r.vin_status || "unknown", "", ""];
+  const badges = [el("span", { class: `badge ${st[1]}`, title: st[2] }, `VIN ${st[0]}`)];
+  const v = extra.vin_validation && typeof extra.vin_validation === "object" ? extra.vin_validation : {};
+  if (v.check_digit_ok === true) badges.push(el("span", { class: "badge ok" }, "✓ Check digit"));
+  else if (v.check_digit_ok === false) badges.push(el("span", { class: "badge warn" }, "Check digit fails"));
+  $("#car-badges").replaceChildren(...badges);
+  $("#car-card").hidden = false;
+}
+
+const SEV_RANK = { severe: 3, moderate: 2, minor: 1 };
+
+function sevBars(sev) {
+  const n = SEV_RANK[sev] || 0;
+  return el("span", { class: "bars", "aria-hidden": "true" }, [1, 2, 3].map((i) => el("i", { class: i <= n ? "on" : "" })));
+}
+
+function goToPart(part) {
+  showTab("defects");
+  const rows = [...document.querySelectorAll("#damage-body tr[data-part]")].filter((tr) => tr.dataset.part === part);
+  const low = rows.length && rows.every((tr) => tr.closest("details")) ? rows[0].closest("details") : null;
+  if (low) low.open = true;
+  for (const tr of rows) {
+    tr.classList.remove("flash");
+    void tr.offsetWidth; // restart the highlight animation
+    tr.classList.add("flash");
+  }
+  if (rows[0]) rows[0].scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+function renderSummary(r) {
+  const findings = Array.isArray(r.findings) ? r.findings : [];
+  const main = findings.filter((f) => !isLowConfidence(f));
+  const low = findings.filter(isLowConfidence);
+  $("#sum-count").textContent = String(main.length);
+  $("#sum-label").textContent = main.length === 1 ? "damage found" : "damages found";
+  $("#spin-chip").textContent = main.length ? `${main.length} damage${main.length === 1 ? "" : "s"} found` : "No confirmed damage";
+  const byRank = (a, b) => (SEV_RANK[b.severity] || 0) - (SEV_RANK[a.severity] || 0) || String(a.part).localeCompare(String(b.part));
+  $("#sum-chips").replaceChildren(
+    ...[...main].sort(byRank).map((f) =>
+      el("button", { class: `sev-chip sev-${f.severity || "none"}`, type: "button", title: `${humanize(f.damage)} · ${f.severity || "not rated"}`, onclick: () => goToPart(f.part) },
+        sevBars(f.severity), sentence(f.part)),
+    ),
+  );
+  const notes = [];
+  if (low.length) notes.push(`+ ${low.length} low-confidence finding${low.length === 1 ? "" : "s"} to verify.`);
+  if (findings.length) notes.push("Automatic detection: check each finding on the car.");
+  else notes.push("The models found nothing above their thresholds; this does not guarantee the car is damage-free.");
+  $("#sum-note").textContent = notes.join(" ");
+  const t = state.damageTotals || { sum: 0, unpriced: 0 };
+  $("#sum-total").textContent = main.length ? (t.sum > 0 ? `from ${fmtUZS(t.sum)}` : "no price data") : "nothing to repair";
+  $("#sum-total-note").textContent = main.length && t.sum > 0 ? `"From" prices from local listings${t.unpriced ? `; ${t.unpriced} item${t.unpriced === 1 ? "" : "s"} without price data not included` : ""}.` : "";
+
+  // Parts with findings: worst confirmed severity per part, or "check" when the part only has low-confidence findings.
+  const parts = new Map();
+  for (const f of findings) {
+    const p = parts.get(f.part) || { part: f.part, sev: null, damages: new Set(), lowOnly: true };
+    p.damages.add(humanize(f.damage));
+    if (!isLowConfidence(f)) {
+      p.lowOnly = false;
+      if ((SEV_RANK[f.severity] || 0) > (SEV_RANK[p.sev] || 0)) p.sev = f.severity;
+    }
+    parts.set(f.part, p);
+  }
+  const list = [...parts.values()].sort((a, b) => a.lowOnly - b.lowOnly || (SEV_RANK[b.sev] || 0) - (SEV_RANK[a.sev] || 0) || String(a.part).localeCompare(String(b.part)));
+  $("#parts-title").textContent = `Parts with findings · ${list.length}`;
+  $("#parts-list").replaceChildren(
+    ...(list.length
+      ? list.map((p) =>
+          el("li", {}, el("button", { class: "part-row", type: "button", onclick: () => goToPart(p.part) },
+            el("span", { class: "part-name" }, sentence(p.part), el("span", { class: "small muted" }, [...p.damages].join(", "))),
+            p.lowOnly ? el("span", { class: "badge warn" }, "check") : el("span", { class: `badge sev-${p.sev || "none"}` }, sevBars(p.sev), p.sev || "not rated"))))
+      : [el("li", { class: "small muted" }, "No damage was detected on any part.")]),
+  );
+}
+
+// ---------- light / dark theme (light by default, like the reference design; the choice is kept in this browser)
+
+function syncThemeButton() {
+  const dark = document.documentElement.dataset.theme === "dark";
+  const b = $("#theme-btn");
+  b.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+  b.title = dark ? "Light mode" : "Dark mode";
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = dark ? "#11151b" : "#ffffff";
+}
+
+function toggleTheme() {
+  const dark = document.documentElement.dataset.theme !== "dark";
+  if (dark) document.documentElement.dataset.theme = "dark";
+  else delete document.documentElement.dataset.theme;
+  try {
+    localStorage.setItem("avto-theme", dark ? "dark" : "light");
+  } catch {
+    /* storage blocked: the theme still switches for this page */
+  }
+  syncThemeButton();
+}
+
+// ---------- tabs (a scrolling top bar on phones, a left sidebar on wide screens; see style.css)
+
+const TABS = ["overview", "model3d", "tryon", "defects", "shops", "vin", "report"]; // sidebar order
+
+function tabFromHash() {
+  const h = decodeURIComponent(location.hash.replace(/^#/, ""));
+  return TABS.includes(h) ? h : null;
+}
+
+function showTab(name, { focus = false, scroll = true } = {}) {
+  if (!TABS.includes(name)) name = "overview";
+  state.tab = name;
+  for (const t of TABS) {
+    const on = t === name;
+    const btn = $(`#tab-${t}`);
+    btn.setAttribute("aria-selected", String(on));
+    btn.tabIndex = on ? 0 : -1;
+    $(`#panel-${t}`).hidden = !on;
+  }
+  const btn = $(`#tab-${name}`);
+  if (focus) btn.focus();
+  const bar = $("#tabs");
+  if (bar.scrollWidth > bar.clientWidth) {
+    // keep the active tab visible in the horizontally scrolling phone tab bar
+    const l = btn.offsetLeft;
+    const r = l + btn.offsetWidth;
+    if (l < bar.scrollLeft + 24) bar.scrollTo({ left: Math.max(0, l - 32), behavior: "smooth" });
+    else if (r > bar.scrollLeft + bar.clientWidth - 24) bar.scrollTo({ left: r - bar.clientWidth + 32, behavior: "smooth" });
+  }
+  if (location.hash !== `#${name}`) history.replaceState(null, "", `${location.pathname}${location.search}#${name}`);
+  if (scroll) {
+    // after scrolling down a long tab, start the next one at its top (just below the sticky bars)
+    const panels = $(".panels");
+    const margin = parseFloat(getComputedStyle(panels).scrollMarginTop) || 0;
+    if (panels.getBoundingClientRect().top < margin) panels.scrollIntoView({ block: "start" });
+  }
+  if (name === "model3d") mountPending3d();
+  if (name !== "overview") toggleSpinPlay(false);
+}
+
+function bindTabs() {
+  const bar = $("#tabs");
+  bar.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-tab]");
+    if (b) showTab(b.dataset.tab);
+  });
+  bar.addEventListener("keydown", (e) => {
+    const i = TABS.indexOf(state.tab);
+    const next = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: TABS.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    showTab(TABS[(next + TABS.length) % TABS.length], { focus: true });
+  });
+  for (const t of document.querySelectorAll("[data-go]")) t.addEventListener("click", () => showTab(t.dataset.go));
+  window.addEventListener("hashchange", () => {
+    const t = tabFromHash();
+    if (t && t !== state.tab && !$("#passport").hidden) showTab(t);
+  });
+}
+
+// Overview tiles and the small counters on the tabs; filled by the renderers below from the same data they show.
+function setTile(key, value, sub, tone = "") {
+  const v = $(`#tile-${key}`);
+  if (v) {
+    v.textContent = value;
+    v.dataset.tone = tone;
+  }
+  const s = $(`#tile-${key}-sub`);
+  if (s) s.textContent = sub || "";
+}
+
+function setTabCount(key, text, tone = "") {
+  const c = $(`#tabc-${key}`);
+  if (!c) return;
+  c.textContent = text || "";
+  c.dataset.tone = tone;
 }
 
 // ---------- VIN card
@@ -535,6 +759,12 @@ function renderVin(r, extra) {
   badge.textContent = st[0];
   badge.className = `badge ${st[1]}`;
   badge.title = st[2];
+
+  {
+    const d = extra.vin_decode && typeof extra.vin_decode === "object" ? extra.vin_decode : {};
+    const car = [d.make || d.manufacturer, d.model, d.model_year].filter((x) => x != null && x !== "").join(" ");
+    setTile("vin", r.vin || extra.vin_masked || "Not read", [titleCase(car), `VIN ${st[0]}`].filter(Boolean).join(" · "), r.vin ? "" : "warn");
+  }
 
   const vinEl = $("#vin-value");
   if (r.vin) {
@@ -587,6 +817,8 @@ const spin = {
   pinsByFrame: new Map(),
   bound: false,
   drag: null,
+  timer: 0, // auto-turn interval
+  sevByKey: null, // "part|damage" -> severity, for pin colours
 };
 
 function setupSpin(media, extra) {
@@ -649,7 +881,7 @@ function setupSpin(media, extra) {
   spin.names.forEach((name, i) => {
     const list = spin.pinsByFrame.get(stemKey(name));
     if (!list || !spin.frameSize) return;
-    chips.append(el("button", { class: "chip", type: "button", "data-idx": String(i), onclick: () => showSpin(i) }, `Frame ${i + 1}: ${list.length} damage`));
+    chips.append(el("button", { class: "chip", type: "button", "data-idx": String(i), onclick: () => showSpin(i) }, `View ${i + 1} · ${list.length} box${list.length === 1 ? "" : "es"}`));
   });
 
   // Preload frames.
@@ -676,7 +908,7 @@ function setupSpin(media, extra) {
     if (!w || !h) return;
     const frame = $("#spin-frame");
     frame.style.aspectRatio = `${w} / ${h}`;
-    frame.style.width = `min(100%, ${((70 * w) / h).toFixed(2)}vh)`;
+    frame.style.width = `min(100%, calc(var(--stage-h) * ${(w / h).toFixed(4)}))`;
   };
   if (spin.frameSize) sizeFrom(spin.frameSize[0], spin.frameSize[1]);
   first.addEventListener("load", () => sizeFrom(first.naturalWidth, first.naturalHeight), { once: true });
@@ -694,7 +926,7 @@ function showSpin(i) {
   img.alt = `Walkaround frame ${spin.idx + 1} of ${n}`;
   $("#spin-range").value = String(spin.idx);
   const pins = spin.pinsByFrame.get(stemKey(spin.names[spin.idx])) || [];
-  $("#spin-caption").textContent = `Frame ${spin.idx + 1} of ${n} · ${spin.names[spin.idx]}${pins.length ? ` · ${pins.length} damage pin${pins.length === 1 ? "" : "s"}` : ""}`;
+  $("#spin-caption").textContent = `View ${spin.idx + 1} of ${n} · ${spin.names[spin.idx]}${pins.length ? ` · ${pins.length} damage pin${pins.length === 1 ? "" : "s"}` : ""}`;
   for (const c of document.querySelectorAll("#spin-pin-frames .chip")) c.classList.toggle("active", Number(c.dataset.idx) === spin.idx);
   renderSpinPins(pins);
 }
@@ -713,13 +945,24 @@ function renderSpinPins(pins) {
     const w = Math.abs(x2 - x1) / fw;
     const h = Math.abs(y2 - y1) / fh;
     const score = Number(p.score);
+    const sev = (spin.sevByKey && spin.sevByKey.get(`${p.part}|${p.damage}`)) || "none";
+    const low = Number.isFinite(score) && score < LOW_CONFIDENCE;
     const box = el(
       "div",
-      { class: `pin-box${top < 0.08 ? " label-below" : ""}`, style: { left: pct(left), top: pct(top), width: pct(w), height: pct(h) } },
+      { class: `pin-box sev-${sev}${low ? " low" : ""}${top < 0.08 ? " label-below" : ""}`, style: { left: pct(left), top: pct(top), width: pct(w), height: pct(h) } },
       el("span", { class: "pin-label" }, `${humanize(p.damage)} on ${humanize(p.part)}${Number.isFinite(score) ? ` · ${score.toFixed(2)}` : ""}`),
     );
     layer.append(box);
   }
+}
+
+function toggleSpinPlay(force) {
+  const on = force === undefined ? !spin.timer : Boolean(force) && spin.urls.length > 1;
+  clearInterval(spin.timer);
+  spin.timer = on ? setInterval(() => showSpin(spin.idx + 1), 140) : 0;
+  const b = $("#spin-play");
+  b.setAttribute("aria-pressed", String(Boolean(spin.timer)));
+  b.classList.toggle("active", Boolean(spin.timer));
 }
 
 function bindSpinEvents() {
@@ -728,6 +971,7 @@ function bindSpinEvents() {
   const stage = $("#spin-stage");
   stage.addEventListener("pointerdown", (e) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    toggleSpinPlay(false);
     spin.drag = { x: e.clientX, idx: spin.idx, id: e.pointerId };
     stage.classList.add("dragging");
     try {
@@ -762,9 +1006,19 @@ function bindSpinEvents() {
       e.preventDefault();
     }
   });
-  $("#spin-prev").addEventListener("click", () => showSpin(spin.idx - 1));
-  $("#spin-next").addEventListener("click", () => showSpin(spin.idx + 1));
-  $("#spin-range").addEventListener("input", (e) => showSpin(Number(e.target.value)));
+  $("#spin-prev").addEventListener("click", () => {
+    toggleSpinPlay(false);
+    showSpin(spin.idx - 1);
+  });
+  $("#spin-next").addEventListener("click", () => {
+    toggleSpinPlay(false);
+    showSpin(spin.idx + 1);
+  });
+  $("#spin-play").addEventListener("click", () => toggleSpinPlay());
+  $("#spin-range").addEventListener("input", (e) => {
+    toggleSpinPlay(false);
+    showSpin(Number(e.target.value));
+  });
 }
 
 // ---------- damage list
@@ -816,8 +1070,8 @@ function findingRows(list, costFor, counter) {
     const score = Number(f.max_score);
     return el(
       "tr",
-      {},
-      el("td", { "data-label": "Part" }, el("strong", {}, humanize(f.part))),
+      { "data-part": f.part },
+      el("td", { "data-label": "Part" }, el("strong", {}, sentence(f.part))),
       el(
         "td",
         { "data-label": "Damage" },
@@ -919,6 +1173,13 @@ function renderDamage(r) {
     );
   }
 
+  state.damageTotals = { sum: mainSum.sum, unpriced: mainSum.unpriced };
+  const tileSub = [];
+  if (main.length && mainSum.sum > 0) tileSub.push(`repairs from ${fmtUZS(mainSum.sum)}`);
+  if (low.length) tileSub.push(`+ ${low.length} low confidence, to verify`);
+  setTile("defects", !findings.length ? "None found" : main.length ? `${main.length} confirmed` : "None confirmed", tileSub.join(" · "), main.length ? "warn" : "ok");
+  setTabCount("defects", main.length ? String(main.length) : "", "warn");
+
   // Totals are summed here from the same cost lines the server returned (its total_from_uzs covers all findings).
   const total = $("#damage-total");
   const anyPriced = costs.some((c) => c && c.price_uzs != null);
@@ -962,6 +1223,12 @@ function renderDiff(job, r) {
   const box = $("#diff-body");
   box.replaceChildren();
   const diff = pick(job, "diff");
+  const nNew = diff && Array.isArray(diff.new) ? diff.new.length : 0;
+  setTabCount("vin", nNew ? String(nNew) : "", "err");
+  if (!diff || typeof diff !== "object") setTile("diff", "Not compared", r.vin ? "no comparison returned" : "the VIN was not read");
+  else if (diff.first_inspection) setTile("diff", "First inspection", "of this VIN with AvtoPassport", "info");
+  else if (!Array.isArray(diff.new)) setTile("diff", "Unknown", "the server did not report new damage");
+  else setTile("diff", nNew ? `${nNew} new damage` : "No new damage", diff.previous_created_utc ? `compared with ${fmtDateShort(diff.previous_created_utc)}` : "", nNew ? "err" : "ok");
   if (!diff || typeof diff !== "object") {
     box.append(
       el("p", { class: "muted" }, r.vin ? "The server returned no comparison with earlier inspections." : "No comparison: the VIN was not read, so this inspection cannot be linked to earlier ones."),
@@ -1049,16 +1316,26 @@ async function renderHistory(r, job) {
 
 // ---------- paint try-on
 
+// The try-on has its own view picker, so it works without going back to the 360° view in the Defects tab.
+const tryon = { idx: 0, colour: null, hex: null };
+
 async function setupTryon() {
   const status = $("#palette-status");
   const sw = $("#swatches");
   $("#tryon-figure").hidden = true;
+  $("#tryon-controls").hidden = true;
   $("#tryon-status").textContent = "";
+  tryon.colour = null;
+  tryon.hex = null;
   if (!spin.urls.length) {
     status.textContent = "Try-on needs a walkaround frame, and none was returned.";
     sw.replaceChildren();
+    setTile("tryon", "", "no frames to recolour");
     return;
   }
+  $("#tryon-range").max = String(spin.urls.length - 1);
+  $("#tryon-controls").hidden = false;
+  showTryonFrame(0);
   if (!state.palette) {
     status.textContent = "Loading colours…";
     try {
@@ -1072,9 +1349,19 @@ async function setupTryon() {
   }
   const palette = state.palette;
   status.textContent = palette.length ? "" : "The server returned an empty palette.";
+  setTile("tryon", "", palette.length ? `${palette.length} colours on the real photos` : "");
   const original = el(
     "button",
-    { class: "swatch", type: "button", onclick: (e) => showOriginal(e.currentTarget) },
+    {
+      class: "swatch active",
+      type: "button",
+      onclick: (e) => {
+        markSwatch(e.currentTarget);
+        tryon.colour = null;
+        tryon.hex = null;
+        showOriginal();
+      },
+    },
     el("span", { class: "dot original", "aria-hidden": "true" }),
     "Original",
   );
@@ -1090,7 +1377,12 @@ async function setupTryon() {
           type: "button",
           title: `${c.name || hex}${c.model ? " · " + c.model : ""}`,
           disabled: !valid,
-          onclick: (e) => loadTryon(c, hex, e.currentTarget),
+          onclick: (e) => {
+            markSwatch(e.currentTarget);
+            tryon.colour = c;
+            tryon.hex = hex;
+            loadTryon(c, hex);
+          },
         },
         el("span", { class: "dot", style: { background: valid ? `#${hex}` : "transparent" }, "aria-hidden": "true" }),
         el("span", {}, c.name || `#${hex}`),
@@ -1104,23 +1396,33 @@ function markSwatch(btn) {
   for (const b of document.querySelectorAll("#swatches .swatch")) b.classList.toggle("active", b === btn);
 }
 
-function showOriginal(btn) {
-  markSwatch(btn);
-  state.tryonToken += 1;
-  const fig = $("#tryon-figure");
-  $("#tryon-img").src = spin.urls[spin.idx];
-  $("#tryon-label").textContent = `Original photo · ${spin.names[spin.idx]}`;
-  $("#tryon-status").textContent = "";
-  fig.hidden = false;
+function showTryonFrame(i) {
+  const n = spin.urls.length;
+  if (!n) return;
+  tryon.idx = ((i % n) + n) % n;
+  $("#tryon-range").value = String(tryon.idx);
+  if (tryon.hex) loadTryon(tryon.colour, tryon.hex);
+  else showOriginal();
 }
 
-async function loadTryon(c, hex, btn) {
-  const frame = spin.names[spin.idx];
+function viewText() {
+  return `view ${tryon.idx + 1} of ${spin.urls.length}`;
+}
+
+function showOriginal() {
+  state.tryonToken += 1;
+  $("#tryon-img").src = spin.urls[tryon.idx];
+  $("#tryon-label").textContent = `Original photo · ${viewText()}`;
+  $("#tryon-status").textContent = "";
+  $("#tryon-figure").hidden = false;
+}
+
+async function loadTryon(c, hex) {
+  const frame = spin.names[tryon.idx];
   if (!frame || !state.jobId) return;
-  markSwatch(btn);
   const token = ++state.tryonToken;
   const st = $("#tryon-status");
-  st.replaceChildren(el("span", { class: "spinner", "aria-hidden": "true" }), ` Recolouring frame ${spin.idx + 1} to ${c.name || "#" + hex}…`);
+  st.replaceChildren(el("span", { class: "spinner", "aria-hidden": "true" }), ` Painting ${viewText()} ${c.name || "#" + hex}…`);
   st.className = "small";
   const url = `${inspectionUrl(state.jobId)}/tryon?colour=${encodeURIComponent(hex)}&frame=${encodeURIComponent(frame)}`;
   try {
@@ -1142,7 +1444,7 @@ async function loadTryon(c, hex, btn) {
     $("#tryon-img").src = state.tryonUrl;
     const src = safeHref(c.source_url);
     const label = $("#tryon-label");
-    label.replaceChildren(`${c.name || "#" + hex}${c.model ? " (" + c.model + ")" : ""} · #${hex.toUpperCase()} · frame ${frame}`);
+    label.replaceChildren(`${c.name || "#" + hex}${c.model ? " (" + c.model + ")" : ""} · #${hex.toUpperCase()} · ${viewText()}`);
     if (src) label.append(" · ", el("a", { href: src, target: "_blank", rel: "noopener" }, "colour source"));
     $("#tryon-figure").hidden = false;
     st.textContent = "";
@@ -1201,9 +1503,34 @@ function keepWatching(job) {
   return Boolean((r && !isReconFinal(r.status)) || (h && HQ_ACTIVE.has(h.status)));
 }
 
+// The 3D models (the splat file is ~28 MB) are downloaded only once the 3D tab is opened.
+function mountPending3d() {
+  if (state.tab !== "model3d") return;
+  const { cloud, hq } = state.pending3d;
+  if (hq && state.viewerSplat !== hq.url) mountHqViewer(hq.url, hq.pins, hq.view);
+  if (cloud && state.viewerPly !== cloud.url) mountViewer(cloud.url, cloud.pins, cloud.view);
+}
+
+function update3dSummary(job) {
+  const r = reconOf(job);
+  const h = hqOf(job);
+  const hqOn = Boolean(h && ["waiting", "queued", "running", "done", "error"].includes(h.status));
+  const building = Boolean((r && ["not_started", "queued", "running"].includes(r.status)) || (hqOn && HQ_ACTIVE.has(h.status)));
+  const ready = [];
+  if (hqOn && h.status === "done") ready.push("high-quality model");
+  if (r && r.status === "done") ready.push("point cloud");
+  if (ready.length) setTile("3d", "Ready", `${ready.join(" + ")}${building ? " · still building the rest" : ""}`, "ok");
+  else if (building) setTile("3d", "Building…", "this can take several minutes", "info");
+  else if (r && r.status === "unavailable") setTile("3d", "Not available", "on this server");
+  else if ((r && r.status === "error") || (hqOn && h.status === "error")) setTile("3d", "Failed", "see the 3D model tab", "err");
+  else setTile("3d", "Not reported", "");
+  setTabCount("model3d", building ? "…" : "", "busy");
+}
+
 function watchRecon(token, job) {
   renderRecon(reconOf(job));
   renderHq(hqOf(job));
+  update3dSummary(job);
   if (!keepWatching(job)) return;
   setTimeout(() => pollRecon(token, 1, 0), RECON_POLL_MS);
 }
@@ -1227,6 +1554,7 @@ async function pollRecon(token, n, failures) {
   state.job = job;
   renderRecon(reconOf(job));
   renderHq(hqOf(job));
+  update3dSummary(job);
   if (!keepWatching(job)) return;
   const hqActive = Boolean(hqOf(job) && HQ_ACTIVE.has(hqOf(job).status));
   if (n >= (hqActive ? RECON_HQ_MAX_POLLS : RECON_MAX_POLLS)) {
@@ -1268,7 +1596,8 @@ function renderRecon(r) {
         errEl.textContent = "The server reports the 3D model as done but returned no model file.";
         errEl.hidden = false;
       } else if (state.viewerPly !== ply) {
-        mountViewer(ply, confidentPins(r.pins), r.view || null);
+        state.pending3d.cloud = { url: ply, pins: confidentPins(r.pins), view: r.view || null };
+        mountPending3d();
       }
       renderReconPins(Array.isArray(r.pins) ? r.pins : []);
       break;
@@ -1407,7 +1736,8 @@ function renderHq(h) {
         errEl.textContent = "The server reports the high-quality 3D as done but returned no model file.";
         errEl.hidden = false;
       } else if (state.viewerSplat !== splat) {
-        mountHqViewer(splat, confidentPins(h.pins), h.view || null);
+        state.pending3d.hq = { url: splat, pins: confidentPins(h.pins), view: h.view || null };
+        mountPending3d();
       }
       break;
     }
@@ -1542,6 +1872,7 @@ function renderVerification(job, r, extra, media) {
   const links = $("#report-links");
   links.replaceChildren();
   const pdf = safeHref(media.pdf);
+  setTile("report", pdf ? "PDF ready" : "No PDF", r.frames_sha256 ? `frames SHA-256 ${String(r.frames_sha256).slice(0, 12)}…` : "", pdf ? "ok" : "warn");
   if (pdf) links.append(el("a", { class: "btn btn-primary", href: pdf, download: "" }, "Download PDF passport"));
   else links.append(el("span", { class: "muted small" }, "PDF not available for this inspection."));
   const report = pick(job, "report");
@@ -1654,6 +1985,19 @@ function init() {
   $("#share-btn").addEventListener("click", sharePassport);
   $("#shops-geo").addEventListener("click", findShopsHere);
   $("#shops-tashkent").addEventListener("click", () => fetchShops(TASHKENT.lat, TASHKENT.lon, "Tashkent centre"));
+  $("#tryon-prev").addEventListener("click", () => showTryonFrame(tryon.idx - 1));
+  $("#tryon-next").addEventListener("click", () => showTryonFrame(tryon.idx + 1));
+  let tryonTimer = 0;
+  $("#tryon-range").addEventListener("input", (e) => {
+    const i = Number(e.target.value);
+    clearTimeout(tryonTimer);
+    if (!tryon.hex) showTryonFrame(i);
+    else tryonTimer = setTimeout(() => showTryonFrame(i), 250); // each recoloured view is a server request
+  });
+  bindTabs();
+  state.initialTab = tabFromHash();
+  $("#theme-btn").addEventListener("click", toggleTheme);
+  syncThemeButton();
 
   loadHealth();
 

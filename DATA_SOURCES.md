@@ -210,6 +210,8 @@ These feed `data/reference/repair_prices.csv` (built by `scripts/build_repair_pr
 | DejaVu Sans font (system package `fonts-dejavu-core`) | system | Bitstream Vera / DejaVu font licence (free, redistributable) | https://dejavu-fonts.github.io/License.html | Cyrillic text in the PDF |
 | three.js | 0.186.1 (CDN, jsdelivr) | MIT | https://github.com/mrdoob/three.js/blob/dev/LICENSE | 3D point-cloud viewer |
 | Spark (`@sparkjsdev/spark`) | 2.3.1 (CDN, jsdelivr) | MIT | https://github.com/sparkjsdev/spark | Gaussian-splat viewer (high-quality 3D, when available) |
+| Inter font | Google Fonts CSS2 API (latest) | SIL Open Font License 1.1 | https://github.com/rsms/inter/blob/master/LICENSE.txt | Web UI font; the page falls back to the system font when offline |
+| UI icons (inline SVG in `web/index.html`) | drawn for this repo in the style of Lucide; the car, box, palette, wrench, map-pin, file, moon, sun and link shapes follow Lucide's outlines | ISC (Lucide) | https://github.com/lucide-icons/lucide/blob/main/LICENSE | Sidebar, header and viewer icons |
 
 ### 3D reconstruction (separate venv `.venv-3d`, see `docs/research/recon3d_candidates.md`)
 

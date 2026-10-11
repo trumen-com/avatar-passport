@@ -39,6 +39,15 @@ Read this first. Kept up to date during the night; see `git log` for the exact o
     `docs/research/recon3d_smoke_results.md`.
 - **Speed on the HF CPU Basic proxy, measured:** a full app inspection with the server pinned to 2 threads and the GPU
   hidden takes 138.8 s for 72 frames. That is minutes, not seconds, but it works. See `docs/pitch/cost_model.md`.
+- **Web UI redesign (morning, at your request):**
+  - The light theme follows your reference image, and the header has a dark-mode button.
+  - A left sidebar on wide screens, which becomes a scrolling tab row on phones. The tabs are Car, 3D model, Customize,
+    Damage, Body shops, VIN / History and Report.
+  - The Car tab has the 360° view, with damage boxes coloured by severity and an auto-turn button. Next to it is an
+    inspection summary: confirmed damage count, part chips, the repair total, and the parts with findings.
+  - The 3D models only download when the 3D tab is opened.
+  - Customize has its own view picker. Black, Gray and Silver were removed from the try-on (`"tryon": false` in
+    `colours.json`). The try-on keeps the car's own lightness, so on a light car they looked unchanged.
 - **Screenshots for the deck** (VIN masked, demo car undamaged): `docs/assets/screenshots/`.
 - **Docker:** not built, because docker is not on this laptop. Both of the image's Python environments were installed
   from scratch in clean venvs, and the full test suite passes there on CPU only.

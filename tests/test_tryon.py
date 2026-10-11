@@ -157,6 +157,15 @@ def test_load_palette_matches_json() -> None:
         assert {"name", "model", "hex", "source_url"} <= set(c)
 
 
+def test_tryon_false_marks_exactly_the_dark_neutral_swatches() -> None:
+    # recolor keeps L and swaps a/b, so a dark neutral target leaves a light car looking unchanged. The colours.json
+    # "tryon": false flags must match that rule (chroma < 10 and L < 60), so the API hides exactly those.
+    for c in load_palette():
+        L, a, b = hex_to_lab(c["hex"])
+        dark_neutral = (a * a + b * b) ** 0.5 < 10 and L < 60
+        assert (c.get("tryon", True) is False) == dark_neutral, c["name"]
+    assert any(c["name"] == "Black" and c.get("tryon") is False for c in load_palette())
+
 def test_recolor_all_one_image_per_colour_and_matches_recolor() -> None:
     img, mask = grey_car()
     pal = load_palette()

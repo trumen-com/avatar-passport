@@ -186,6 +186,7 @@ export function createViewer(container, { plyUrl, splatUrl, view = null, pins = 
     function loop() {
       if (disposed) return;
       raf = requestAnimationFrame(loop);
+      if (stage.clientWidth === 0) return; // its tab is hidden: skip drawing until it is shown again
       controls.update();
       renderer.render(scene, camera);
       labelRenderer.render(scene, camera);
