@@ -1,6 +1,8 @@
 // AvtoPassport web client. Plain ES module, no build step.
 // Everything shown on the page comes from the API; when the API reports an error or a missing value we say so.
 
+import { getLang, partSearch, setLang, startTranslator } from "./i18n.js";
+
 const REPO_URL = ""; // e.g. "https://github.com/<org>/avtopassport"; the footer link is hidden while empty.
 
 const POLL_MS = 2000;          // job polling while queued/running
@@ -594,6 +596,7 @@ function renderPassport(job) {
   setupTryon();
   renderVerification(job, r, extra, media);
   const car = carInfo(extra);
+  state.carName = car.name || null; // make (and model when decoded) for the part searches
   $("#passport-title").textContent = car.name ? `${car.name}${car.d.model_year != null ? ` · ${car.d.model_year}` : " · condition passport"}` : "Condition passport";
   $("#passport-sub").textContent = [`Inspection ${String(job.id ?? state.jobId).slice(0, 8)}`, fmtDateShort(r.created_utc)].filter(Boolean).join(" · ");
   $("#tabs").hidden = false;
@@ -746,10 +749,14 @@ function showPartCaption(p) {
     cap.textContent = "Tap a part to see its damage.";
     return;
   }
-  cap.replaceChildren(el("strong", {}, p.name), p.damage ? ` · ${p.damage.items.join(", ")} · ` : " · no damage found");
+  cap.replaceChildren(el("strong", {}, p.name), " · ");
   if (p.damage) {
-    cap.append(el("a", { href: "#defects", onclick: (e) => { e.preventDefault(); goToPart(p.key); } }, "View in Damage list"));
+    cap.append(p.damage.items.join(", "), " · ",
+      el("a", { href: "#defects", onclick: (e) => { e.preventDefault(); goToPart(p.key); } }, "View in Damage list"), " · ");
   }
+  const s = partSearch(p.key, state.carName, p.name);
+  cap.append(el("a", { href: s.olx, target: "_blank", rel: "noopener", title: s.query }, "OLX.uz"), " · ",
+    el("a", { href: s.google, target: "_blank", rel: "noopener" }, "Google"));
 }
 
 async function mountOverviewParts(url) {
@@ -758,7 +765,7 @@ async function mountOverviewParts(url) {
     const [mod, data] = await Promise.all([import("./partsviewer.js"), partsData(url)]);
     if (state.ovParts) state.ovParts.dispose();
     state.ovParts = mod.createPartsViewer($("#ov3d-viewer"), data,
-      { damage: state.damageByPart || {}, mode: 2, compact: true, onSelect: showPartCaption });
+      { damage: state.damageByPart || {}, mode: 2, compact: true, onSelect: showPartCaption, car: state.carName });
     $("#view-toggle").hidden = false;
     if (!state.ovViewChosen) setOverviewView("3d");
   } catch (e) {
@@ -1910,7 +1917,7 @@ async function mountPartsViewer(url) {
   try {
     const [mod, data] = await Promise.all([import("./partsviewer.js"), partsData(url)]);
     if (state.viewerParts) state.viewerParts.dispose();
-    state.viewerParts = mod.createPartsViewer(box, data, { damage: state.damageByPart || {} });
+    state.viewerParts = mod.createPartsViewer(box, data, { damage: state.damageByPart || {}, car: state.carName });
     const m = data.meta || {};
     $("#parts3d-status").textContent = `${(m.parts || []).length} parts${m.source ? ` from ${m.source}` : ""}. Slide "Take apart" to split the car.`;
   } catch (e) {
@@ -2119,6 +2126,15 @@ function resetAll() {
 // ---------------------------------------------------------------- init
 
 function init() {
+  startTranslator(getLang());
+  for (const b of document.querySelectorAll("#lang-switch button")) {
+    b.setAttribute("aria-pressed", String(b.dataset.lang === getLang()));
+    b.addEventListener("click", () => {
+      if (b.dataset.lang === getLang()) return;
+      setLang(b.dataset.lang);
+      location.reload(); // every text is rendered again in the new language
+    });
+  }
   const repo = $("#repo-link");
   if (REPO_URL && safeHref(REPO_URL)) {
     repo.href = REPO_URL;

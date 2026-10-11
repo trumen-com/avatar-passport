@@ -2,6 +2,8 @@
 // Ported from the "Camry Parts Scan" viewer by Team Trumen (WIUT Hackathon 2026), plain WebGL 1, no libraries.
 // Data: /api/inspections/<id>/parts3d.json (see src/avtopassport/recon3d/parts_cloud.py for the format).
 
+import { partSearch } from "./i18n.js";
+
 function dec(b) {
   const s = atob(b);
   const u = new Uint8Array(s.length);
@@ -164,8 +166,8 @@ export function createPartsViewer(container, D, opts = {}) {
     rows.push(`<dt>Points</dt><dd>${p.points.toLocaleString()}</dd><dt>Seen in</dt><dd>${p.views}+ views</dd>`);
     const d = damageFor(p, opts.damage);
     if (d) rows.unshift(`<dt>Damage</dt><dd>${(d.items || [d.severity]).map(esc).join("<br>")}</dd>`);
-    const s = p.search || {};
-    const links = [s.olx_uz ? `<a href="${esc(s.olx_uz)}" target="_blank" rel="noopener">OLX.uz</a>` : "", s.google ? `<a href="${esc(s.google)}" target="_blank" rel="noopener">Google</a>` : ""].join("");
+    const s = partSearch(p.key, opts.car, p.name);
+    const links = `<a href="${esc(s.olx)}" target="_blank" rel="noopener" title="${esc(s.query)}">OLX.uz</a><a href="${esc(s.google)}" target="_blank" rel="noopener">Google</a>`;
     detail.innerHTML = `<strong>${esc(p.name)}</strong><dl class="kv">${rows.join("")}</dl>${links ? `<div class="pv-links"><span class="small muted">Find the part:</span>${links}</div>` : ""}`;
   }
 
