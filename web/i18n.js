@@ -51,6 +51,7 @@ const E = {
   "Record or upload": ["Снимите или загрузите", "Yozib oling yoki yuklang"],
   "Film the car all the way round (30–60 s), then photograph the VIN plate.": ["Снимите машину по кругу (30–60 с), затем сфотографируйте табличку VIN.", "Mashinani to‘liq aylanib suratga oling (30–60 s), so‘ng VIN raqamini suratga oling."],
   "Demo car": ["Демо-автомобиль", "Demo avtomobil"],
+  "Open ready demo": ["Открыть готовое демо", "Tayyor demoni ochish"],
   "Use demo car": ["Использовать демо", "Demo mashinani ishlatish"],
   "1. Walkaround video": ["1. Видео по кругу", "1. Aylanma video"],
   "(required)": ["(обязательно)", "(majburiy)"],

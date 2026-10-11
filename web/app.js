@@ -5,7 +5,7 @@ import { getLang, partSearch, setLang, startTranslator } from "./i18n.js";
 
 const REPO_URL = "https://github.com/trumen-com/avatar-passport"; // e.g. "https://github.com/<org>/avtopassport"; the footer link is hidden while empty.
 
-const POLL_MS = 2000;          // job polling while queued/running
+const POLL_MS = 1000;          // job polling while queued/running
 const RECON_POLL_MS = 5000;    // 3D reconstruction polling after the passport is done
 const RECON_MAX_POLLS = 720;   // stop watching after ~1 hour
 const MAX_POLL_FAILURES = 30;  // consecutive network failures before giving up
@@ -222,6 +222,14 @@ async function loadHealth() {
     if (h.demo && h.demo.video) {
       $("#demo-files").textContent = `${h.demo.video}${h.demo.vin_photo ? ` + ${h.demo.vin_photo}` : ""} · already on the server, no upload`;
       $("#demo-box").hidden = false;
+      apiJSON("/api/inspections/demo/latest")
+        .then((d) => {
+          const a = $("#demo-ready");
+          a.href = `?inspection=${encodeURIComponent(d.id)}`;
+          a.title = `A finished demo passport made ${fmtDateShort(d.created_utc)}`;
+          a.hidden = false;
+        })
+        .catch(() => {}); // none finished yet: only the live run is offered
     }
     const msgs = [];
     if (!h.ok) msgs.push("The server health check reports a problem.");

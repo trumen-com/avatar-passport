@@ -43,7 +43,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .. import __version__
 from ..paths import REPO_ROOT
-from .jobs import API_PREFIX, Backends, JobManager, Settings, jsonable
+from .jobs import API_PREFIX, JOB_ID_RE, Backends, JobManager, Settings, jsonable
 from .persist import Persister
 from .shops import ATTRIBUTION_URL, SOURCE, ShopFinder, ShopsUnavailable
 
@@ -250,7 +250,20 @@ def create_app(*, settings: Settings | None = None, backends: Backends | None = 
             shutil.rmtree(jobs.job_dir(job_id), ignore_errors=True)
             raise
         jobs.submit(job_id, video_path, vin_photo=photo_path, vin_text=(vin_text or "").strip() or None)
+        with (settings.data_dir / "demo_jobs.txt").open("a", encoding="utf-8") as fh:  # for /api/inspections/demo/latest
+            fh.write(job_id + "\n")
         return {"id": job_id, "status_url": f"{API_PREFIX}/{job_id}"}
+
+    @app.get(f"{API_PREFIX}/demo/latest")
+    def latest_demo_inspection() -> dict[str, Any]:
+        """The most recent finished demo-car inspection (a real stored run), so a ready passport opens instantly."""
+        path = settings.data_dir / "demo_jobs.txt"
+        ids = path.read_text(encoding="utf-8").split() if path.is_file() else []
+        for jid in reversed(ids[-200:]):
+            st = jobs.get(jid) if JOB_ID_RE.match(jid) else None
+            if st and st.get("status") == "done":
+                return {"id": jid, "created_utc": st.get("created_utc"), "status_url": f"{API_PREFIX}/{jid}"}
+        raise HTTPException(404, "no finished demo inspection yet")
 
     def _job_or_404(job_id: str) -> dict[str, Any]:
         st = jobs.get(job_id)
