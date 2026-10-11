@@ -12,6 +12,11 @@ Flow of one job (``DATA_DIR/jobs/<id>/``):
 5. Optional, GPU only (``AVTO_HQ3D=1`` and ``recon3d.hq.available()``): after the DA3 job, a third worker runs
    ``recon3d.hq.build_hq`` (COLMAP SfM + Brush Gaussian splats) on ALL the blurred frames the inspection saved; state
    in ``recon3d_hq``. More frames = better splats: raise ``AVTO_FPS`` / ``AVTO_MAX_FRAMES`` for HQ demos.
+6. Reuse (``AVTO_REUSE_3D``, default on; see ``api/reuse3d.py``): when a finished DA3 / HQ build exists for exactly
+   the same 3D input (same ``frames_sha256`` of the blurred frames + frame-sampling config + model identity), its
+   files are linked into the new job and the state says ``reused`` with the original's measured numbers, instead of
+   queueing a rebuild. Every successful real build is registered in ``DATA_DIR/cache/recon3d_index.json``; the
+   index is backfilled from the job states at startup.
 
 Job state is written to ``<job>/state.json`` after every change, so a restarted server still serves finished jobs.
 Every error is captured into the job state; nothing here may crash the server. The sandbox registry
@@ -41,6 +46,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from ..paths import REPO_ROOT
+from . import reuse3d
 
 log = logging.getLogger("avtopassport.api.jobs")
 
@@ -306,6 +312,7 @@ class Settings:
     pdf_images: int = 4
     enable_hq3d: bool = False              # AVTO_HQ3D=1: optional GPU-only SfM + Gaussian-splat stage
     hq3d_steps: int = 30_000               # AVTO_HQ3D_STEPS: Brush training steps
+    reuse_3d: bool = True                  # AVTO_REUSE_3D=0: always rebuild, never attach a stored build
 
     @classmethod
     def from_env(cls, data_dir: Path | None = None) -> Settings:
@@ -318,6 +325,7 @@ class Settings:
             warmup=_env_flag("AVTO_WARMUP", True),
             enable_hq3d=_env_flag("AVTO_HQ3D", False),
             hq3d_steps=int(os.environ.get("AVTO_HQ3D_STEPS") or 30_000),
+            reuse_3d=_env_flag("AVTO_REUSE_3D", True),
         )
 
 
@@ -377,6 +385,7 @@ class JobManager:
         self._inspector_error: str | None = None
         self._device: str | None = self.settings.device
         self._recon_avail: tuple[bool, str] | None = None
+        self.reuse_index = reuse3d.Index(self.settings.data_dir)
 
     # ----- paths
     @property
@@ -541,6 +550,7 @@ class JobManager:
                 self._states[job_id] = st
             if changed:
                 self._save(job_id)
+        self.backfill_index()
 
     # ----- state
     def _save(self, job_id: str) -> None:
@@ -850,6 +860,9 @@ class JobManager:
 
     # ----- 3D worker
     def _schedule_recon3d(self, job_id: str) -> None:
+        if self.settings.enable_recon3d and self.settings.reuse_3d and self.reuse_build(job_id, "recon3d")[0]:
+            self._schedule_hq(job_id)  # no-op unless the HQ stage is waiting
+            return
         ok, msg = self.recon3d_available()
         if not ok:
             self._update_recon(job_id, status="unavailable", error=msg)
@@ -868,6 +881,8 @@ class JobManager:
         disabled / unavailable are statuses the web page does not show; "waiting" = waiting for the DA3 job."""
         if not self.settings.enable_hq3d:
             self._update_hq(job_id, status="disabled", error=None)
+            return
+        if self.settings.reuse_3d and self.reuse_build(job_id, "recon3d_hq")[0]:
             return
         ok, msg = self.hq_available()
         if not ok:
@@ -944,6 +959,7 @@ class JobManager:
                         _splat_path=str(splat.resolve()), _splat_full_path=str(full.resolve()) if full_ok else None,
                         finished_utc=utc_now())
         self._store_media(job_id, st.get("inspection_id"), {"recon3d_splat": url})
+        self._register_build(job_id, "recon3d_hq")
 
     def resolve_splat(self, job_id: str, full: bool = False) -> Path | None:
         """The served HQ splat (car crop when available) or, with full=True, the uncropped one."""
@@ -1008,6 +1024,7 @@ class JobManager:
                            pins_error=pins_error, info=info, view=read_view(res_out), _ply_path=str(ply.resolve()),
                            finished_utc=utc_now())
         self._store_media(job_id, st.get("inspection_id"), {"recon3d_ply": ply_url, "recon3d_pins": pins})
+        self._register_build(job_id, "recon3d")
 
     def resolve_ply(self, job_id: str) -> Path | None:
         st = self._state(job_id)
@@ -1026,3 +1043,121 @@ class JobManager:
             return None
         p = self.job_dir(job_id) / st["_pdf"]
         return p if p.is_file() and _contained(p, self.job_dir(job_id)) else None
+
+    # ----- reuse of finished 3D builds (api/reuse3d.py)
+    def _register_build(self, job_id: str, kind: str) -> None:
+        """Index a successful real build so the same 3D input is not rebuilt (never fails the job)."""
+        try:
+            st = self.internal(job_id)
+            key = reuse3d.key_for_finished(kind, st) if st else None
+            if key:
+                self.reuse_index.register([(key, reuse3d.entry_for(kind, st))])
+        except Exception:
+            log.exception("could not register the %s build of %s", kind, job_id)
+
+    def backfill_index(self) -> int:
+        """Index every finished real build found in the loaded job states (startup). Returns # entries changed."""
+        with self._lock:
+            states = [json.loads(json.dumps(st)) for st in self._states.values()]
+        items = [(key, reuse3d.entry_for(kind, st)) for st in states for kind in reuse3d.KINDS
+                 if (key := reuse3d.key_for_finished(kind, st))]
+        try:
+            return self.reuse_index.register(items)
+        except Exception:
+            log.exception("3D reuse index backfill failed")
+            return 0
+
+    def reuse_build(self, job_id: str, kind: str) -> tuple[bool, str]:
+        """Attach a finished build of the same 3D input to this job (no queueing). (reused?, reason).
+
+        False (= build normally) when the job has no key, no finished build matches, or the source files are gone."""
+        try:
+            return self._reuse_build(job_id, kind)
+        except Exception as exc:  # a reuse bug must never block the normal build
+            log.exception("3D reuse %s for %s failed", kind, job_id)
+            shutil.rmtree(self.job_dir(job_id) / reuse3d.REUSE_DIRS[kind], ignore_errors=True)
+            return False, f"reuse failed: {type(exc).__name__}: {exc}"
+
+    def _reuse_build(self, job_id: str, kind: str) -> tuple[bool, str]:
+        st = self.internal(job_id)
+        if st is None:
+            return False, "job not found"
+        device = self.recon3d_device if kind == "recon3d" else "n/a"
+        key = reuse3d.key_for_new(kind, st, device=device, hq_steps=self.settings.hq3d_steps)
+        if key is None:
+            return False, "no cache key (the inspection has no frames_sha256 or frame config)"
+        entry = self.reuse_index.get(key)
+        if entry is None:
+            return False, f"no finished build for key {key}"
+        src_id = str(entry.get("job_id") or "")
+        if src_id == job_id or not JOB_ID_RE.match(src_id):
+            return False, "the index entry is this job"
+        src = self.internal(src_id)
+        if src is None or reuse3d.key_for_finished(kind, src) != key:
+            self.reuse_index.drop(key, src_id)
+            return False, f"stale index entry (job {src_id} has no finished {kind} build with this key)"
+        rec = src[kind]
+        served_raw = rec.get("_ply_path" if kind == "recon3d" else "_splat_path")
+        served = Path(served_raw) if isinstance(served_raw, str) else None
+        if served is None or not _contained(served, self.data_dir):
+            return False, f"job {src_id} has no served {kind} file"
+        src_dir, dst_dir = served.parent, self.job_dir(job_id) / reuse3d.REUSE_DIRS[kind]
+        names = reuse3d.DA3_FILES if kind == "recon3d" else reuse3d.HQ_FILES
+        required = {served.name, "cameras.json", "depth.npz"} if kind == "recon3d" else {served.name}
+        full_raw = rec.get("_splat_full_path") if kind == "recon3d_hq" else None
+        full_name = Path(full_raw).name if isinstance(full_raw, str) and Path(full_raw).parent == src_dir else None
+        names = tuple(dict.fromkeys((*names, served.name, *([full_name] if full_name else []))))
+        t0 = time.perf_counter()
+        try:
+            how = reuse3d.attach_files(src_dir, dst_dir, names, required)
+        except OSError as exc:  # source files deleted / disk error: build normally
+            log.warning("job %s: cannot reuse %s of %s: %s", job_id, kind, src_id, exc)
+            return False, f"cannot reuse: {exc}"
+        extra = (st.get("result") or {}).get("extra") or {}
+        common = {"status": "done", "error": None, "seconds": rec.get("seconds"), "finished_utc": utc_now(),
+                  "reused": True, "reused_from_job": src_id, "reused_from_created_utc": src.get("created_utc"),
+                  "original_seconds": rec.get("seconds"), "original_finished_utc": rec.get("finished_utc"),
+                  "original_device": entry.get("device"), "reuse_key": key,
+                  "reuse_files": {"linked": sum(v == "link" for v in how.values()),
+                                  "copied": sum(v == "copy" for v in how.values())}}
+        if kind == "recon3d":
+            pins: list[Any] = []
+            pins_error: str | None = None
+            try:  # the NEW inspection's 2D boxes, projected with the reused cameras + depth (numpy, ~1 s)
+                pins = jsonable(self.backends.project_pins(dst_dir, extra.get("pins2d") or [], extra.get("frame_size")))
+            except Exception as exc:
+                pins_error = f"{type(exc).__name__}: {exc}"
+            url = f"{API_PREFIX}/{job_id}/recon3d/points.ply"
+            new = {**common, "ply": url, "pins": pins, "pins_error": pins_error, "info": rec.get("info"),
+                   "view": read_view(dst_dir), "_ply_path": str((dst_dir / served.name).resolve()),
+                   "reuse_seconds": round(time.perf_counter() - t0, 3)}
+            with self._lock:
+                self._states[job_id]["recon3d"] = new
+            self._save(job_id)
+            self._store_media(job_id, st.get("inspection_id"), {"recon3d_ply": url, "recon3d_pins": pins})
+        else:
+            same_boxes = (extra.get("pins2d") or []) == (((src.get("result") or {}).get("extra") or {}).get("pins2d")
+                                                          or [])
+            # HQ pins need the SfM model (pycolmap, not in the main venv): reuse them only for identical 2D boxes
+            pins = (rec.get("pins") or []) if same_boxes else []
+            pins_note = None if same_boxes else ("damage boxes differ from the original inspection and the "
+                                                 "high-quality pins cannot be re-placed without re-running SfM: "
+                                                 "no pins on the reused high-quality model")
+            full_ok = full_name is not None and (dst_dir / full_name).is_file() and full_name != served.name
+            url = f"{API_PREFIX}/{job_id}/recon3d/splat.ply"
+            old = st.get("recon3d_hq") or {}
+            new = {**_new_hq_state(), **common, "splat": url, "report": rec.get("report"), "view": rec.get("view"),
+                   "pins": pins, "pins_note": pins_note, "steps": rec.get("steps"), "n_frames": rec.get("n_frames"),
+                   "cropped": bool(rec.get("cropped")) and full_ok,
+                   "splat_full": f"{API_PREFIX}/{job_id}/recon3d/splat_full.ply" if full_ok else None,
+                   "_splat_path": str((dst_dir / served.name).resolve()),
+                   "_splat_full_path": str((dst_dir / full_name).resolve()) if full_ok and full_name else None,
+                   "reuse_seconds": round(time.perf_counter() - t0, 3)}
+            if old.get("status") == "error":
+                new["replaced_error"] = old.get("error")
+            with self._lock:
+                self._states[job_id]["recon3d_hq"] = new
+            self._save(job_id)
+            self._store_media(job_id, st.get("inspection_id"), {"recon3d_splat": url})
+        log.info("job %s: %s reused from job %s (%s)", job_id, kind, src_id, key)
+        return True, f"{kind} reused from job {src_id} (key {key})"

@@ -10,6 +10,8 @@ Environment:
     AVTO_RECON3D=0       disable the 3D job (status "unavailable")
     AVTO_HQ3D=1          optional GPU-only high-quality 3D (COLMAP SfM + Brush Gaussian splats) after the 3D job
     AVTO_HQ3D_STEPS      Brush training steps for it (default 30000)
+    AVTO_REUSE_3D=0      always rebuild 3D; by default a finished build of identical blurred frames + settings is
+                         attached (labelled "reused", api/reuse3d.py) instead of being rebuilt
     AVTO_FPS / AVTO_MAX_FRAMES  frames kept per inspection (defaults 2.5 / 72); more frames = better HQ 3D
     AVTO_WARMUP=0        do not load the models at startup (they load on the first inspection)
     AVTO_MAX_VIDEO_MB    upload limit (default 200)

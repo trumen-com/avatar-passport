@@ -1161,6 +1161,33 @@ function reconOf(job) {
 }
 
 const isReconFinal = (s) => s === "done" || s === "error" || s === "unavailable";
+
+// A finished build of exactly the same 3D input (same blurred frames + settings) attached instead of rebuilt.
+// Every number comes from the original build's stored state; nothing here is estimated.
+function fmtBuildTime(sec) {
+  const s = Number(sec);
+  if (!Number.isFinite(s)) return null;
+  return s < 120 ? `${s.toFixed(0)} s` : `${(s / 60).toFixed(s < 600 ? 1 : 0)} min`;
+}
+
+function fmtDevice(dev) {
+  const d = String(dev || "");
+  if (!d) return null;
+  if (d.startsWith("cuda")) return "the GPU (CUDA)";
+  if (d === "cpu") return "the CPU";
+  return `the ${d}`;
+}
+
+function reuseNote(r) {
+  if (!r || !r.reused) return null;
+  const d = r.reused_from_created_utc ? new Date(r.reused_from_created_utc) : null;
+  const when = d && !Number.isNaN(d.getTime()) ? d.toLocaleString() : r.reused_from_created_utc || "an earlier date";
+  const took = fmtBuildTime(r.original_seconds);
+  const dev = fmtDevice(r.original_device);
+  const orig = took ? ` (originally built in ${took}${dev ? ` on ${dev}` : ""})` : "";
+  return el("span", { class: "small muted", style: { display: "block" } },
+    `Reused from the inspection of ${when} of the same video${orig}: identical blurred frames (SHA-256) and settings, so the stored model was attached instead of rebuilding it.`);
+}
 const HQ_ACTIVE = new Set(["waiting", "queued", "running"]);
 
 function hqOf(job) {
@@ -1234,6 +1261,8 @@ function renderRecon(r) {
       badge.className = "badge ok";
       const secs = Number(r.seconds);
       st.textContent = `3D model built${Number.isFinite(secs) ? ` in ${secs.toFixed(0)} s` : ""} from the blurred walkaround frames.`;
+      const reusedNote = reuseNote(r);
+      if (reusedNote) st.append(reusedNote);
       const ply = safeHref(r.ply);
       if (!ply) {
         errEl.textContent = "The server reports the 3D model as done but returned no model file.";
@@ -1360,6 +1389,9 @@ function renderHq(h) {
       }
       if (rep.steps) parts.push(`${Number(rep.steps).toLocaleString()} training steps`);
       st.textContent = parts.length ? `High-quality 3D ${parts.join(" · ")}.` : "High-quality 3D built.";
+      const hqReuse = reuseNote(h);
+      if (hqReuse) st.append(hqReuse);
+      if (h.pins_note) st.append(el("span", { class: "small muted", style: { display: "block" } }, `Note: ${h.pins_note}.`));
       const crop = rep.crop && typeof rep.crop === "object" ? rep.crop : null;
       const full = safeHref(h.splat_full);
       const note = $("#hq-crop");

@@ -17,6 +17,7 @@ from avtopassport.paths import REPO_ROOT
 
 DEFAULT_PYTHON = REPO_ROOT / ".venv-3d" / "bin" / "python"
 WORKER_MODULE = "avtopassport.recon3d.worker"
+DEFAULT_MODEL = "depth-anything/DA3-BASE"  # revision pinned in worker.MODEL_REVISIONS
 
 
 @lru_cache(maxsize=8)
@@ -50,7 +51,7 @@ def _tail(text: str | None, n: int = 1500) -> str:
     return (text or "").strip()[-n:]
 
 
-def build(frames_dir: Path, out_dir: Path, *, device: str = "cpu", model: str = "depth-anything/DA3-BASE",
+def build(frames_dir: Path, out_dir: Path, *, device: str = "cpu", model: str = DEFAULT_MODEL,
           max_frames: int = 30, process_res: int | None = None, threads: int | None = None,
           masks_dir: Path | None = None, python: Path = DEFAULT_PYTHON, timeout_s: int = 3600) -> dict:
     """Run the worker; returns {"ok", "result", "error", "seconds_wall", "out_dir", "ply", "ply_web", "preview"}.

@@ -26,6 +26,8 @@ from avtopassport.api import jobs as jobs_mod
 from avtopassport.api.app import create_app
 from avtopassport.api.jobs import Backends, JobManager, Settings, inspection_overrides, read_view
 from avtopassport.api.shops import OVERPASS_ENDPOINTS, ShopFinder
+from avtopassport.recon3d.build import DEFAULT_MODEL as DA3_MODEL
+from avtopassport.recon3d.worker import DEFAULT_PROCESS_RES, MODEL_REVISIONS
 from avtopassport.schema import DamageFinding, InspectionResult
 
 VIN = "JTMHV05J604123456"  # made-up string for the stub pipeline; never sent to the sandbox
@@ -46,6 +48,8 @@ class StubInspector:
 
     calls: list[dict[str, Any]] = field(default_factory=list)
     fail: bool = False
+    frames_sha256: str = "ab" * 32  # pipeline: SHA-256 over the saved blurred frames (the 3D input)
+    fps: float = 2.5
 
     def run(self, video_path: Path, *, out_dir: Path, vin_image_path: Path | None = None,
             vin_text: str | None = None, progress: Any = None) -> InspectionResult:
@@ -75,11 +79,12 @@ class StubInspector:
             findings.append(_finding("left_front_door", "dent", 0.9))
         return InspectionResult(
             vin=vin_text, vin_status="manual" if vin_text else "could_not_read", created_utc="2026-10-11T01:00:00Z",
-            frames_sha256="ab" * 32, findings=findings, timings_ms={"total": 12.5},
+            frames_sha256=self.frames_sha256, findings=findings, timings_ms={"total": 12.5},
             extra={"frames": names, "spin": [0, 2, 4], "masks": [f"masks/f_{i:05d}.png" for i in range(6)],
                    "pins2d": [{"frame": names[0], "box": [10.0, 10.0, 30.0, 30.0], "damage": "scratch",
                                "part": "front_bumper", "score": 0.8}],
                    "frame_size": [64, 48], "vin_decode": None, "quality": {"kept": 6},
+                   "config": {"device": "cpu", "fps": self.fps, "max_frames": 72, "work_side": 1280},
                    "np_value": np.float32(0.5), "big_mask": np.zeros((100, 100), bool)})
 
 
@@ -130,6 +135,7 @@ class World:
     pdf_images: list[int] = field(default_factory=list)
     overpass_calls: list[str] = field(default_factory=list)
     overpass_fail: set[str] = field(default_factory=set)
+    recon_builds: int = 0
 
     def backends(self) -> Backends:
         def build_json(result: Any, *, diff: Any, decode: Any, extra: dict[str, Any]) -> dict[str, Any]:
@@ -150,7 +156,12 @@ class World:
             Path(out_dir).mkdir(parents=True, exist_ok=True)
             (Path(out_dir) / "points.ply").write_bytes(b"ply\nformat binary_little_endian 1.0\nend_header\nFULL")
             (Path(out_dir) / "points_web.ply").write_bytes(b"ply\nformat binary_little_endian 1.0\nend_header\nWEB")
-            return {"ok": True, "result": {"n_points": 0}, "error": None, "seconds_wall": 1.5,
+            (Path(out_dir) / "cameras.json").write_text("{}")
+            (Path(out_dir) / "depth.npz").write_bytes(b"stub depth")
+            self.recon_builds += 1
+            info = {"n_points": 0, "device": device, "model": DA3_MODEL, "revision": MODEL_REVISIONS[DA3_MODEL],
+                    "process_res_requested": DEFAULT_PROCESS_RES["cpu"]}  # what the real worker reports
+            return {"ok": True, "result": info, "error": None, "seconds_wall": 1.5,
                     "out_dir": str(out_dir), "ply": str(Path(out_dir) / "points.ply"),
                     "ply_web": str(Path(out_dir) / "points_web.ply"), "preview": None}
 
@@ -696,3 +707,158 @@ def test_inspection_overrides_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("AVTO_FPS", "fast")
     monkeypatch.setenv("AVTO_MAX_FRAMES", "-3")
     assert inspection_overrides() == {}
+
+
+# --------------------------------------------------------------------------------------------- reuse of 3D builds
+
+def _hq_stub(calls: list[Any]) -> Any:
+    def hq_build(frames_dir: Path, out_dir: Path, steps: int, pins2d: Any, masks_dir: Path | None) -> dict[str, Any]:
+        calls.append(steps)
+        Path(out_dir).mkdir(parents=True, exist_ok=True)
+        (Path(out_dir) / "splat.ply").write_bytes(b"ply\nformat binary_little_endian 1.0\nend_header\nSPLAT")
+        (Path(out_dir) / "splat_car.ply").write_bytes(b"ply\nformat binary_little_endian 1.0\nend_header\nCAR")
+        report = {"ok": True, "steps": steps, "n_images": 6, "n_registered": 6, "seconds": {"total": 3.0},
+                  "view": {"center": [0, 0, 0], "up": [0, 1, 0], "forward0": [1, 0, 0], "radius": 3.0},
+                  "pins": [{"xyz": [0.0, 0.5, 1.0], "damage": "scratch", "part": "front_bumper", "score": 0.8}],
+                  "crop": {"ok": True, "n_splats": 10, "n_splats_car": 7}}
+        (Path(out_dir) / "hq_report.json").write_text(json.dumps(report))
+        return {"ok": True, "error": None, "splat": str(Path(out_dir) / "splat_car.ply"),
+                "splat_full": str(Path(out_dir) / "splat.ply"), "report": report, "seconds_wall": 3.0,
+                "out_dir": str(out_dir)}
+    return hq_build
+
+
+def _reuse_client(tmp_path: Path, world: World, hq_calls: list[Any], **settings: Any) -> TestClient:
+    world.recon_ok = True
+    return _client_with(tmp_path, world, {"enable_hq3d": True, **settings},
+                        hq_available=lambda: (True, "stub GPU"), hq_build=_hq_stub(hq_calls))
+
+
+def test_same_frames_reuse_3d_and_hq_without_building(tmp_path: Path, world: World) -> None:
+    hq_calls: list[Any] = []
+    with _reuse_client(tmp_path, world, hq_calls) as c:
+        first = run_inspection(c)
+        assert first["recon3d"]["status"] == "done" and first["recon3d_hq"]["status"] == "done"
+        assert "reused" not in first["recon3d"] and world.recon_builds == 1 and len(hq_calls) == 1
+        index = json.loads((tmp_path / "data" / "cache" / "recon3d_index.json").read_text())["entries"]
+        assert sorted(e["kind"] for e in index.values()) == ["recon3d", "recon3d_hq"]
+        assert all(e["job_id"] == first["id"] and "ab" * 32 in k for k, e in index.items())
+
+        second = run_inspection(c)
+        rec, hq = second["recon3d"], second["recon3d_hq"]
+        assert world.recon_builds == 1 and len(hq_calls) == 1  # nothing rebuilt, nothing queued
+        assert _jobs(c).queue_sizes() == {"inspections": 0, "recon3d": 0, "recon3d_hq": 0}
+        for r, secs in ((rec, 1.5), (hq, 3.0)):
+            assert r["status"] == "done" and r["reused"] is True and r["error"] is None
+            assert r["reused_from_job"] == first["id"] and r["reused_from_created_utc"] == first["created_utc"]
+            assert r["original_seconds"] == secs and r["seconds"] == secs  # the measured time of the original
+            assert r["reuse_files"]["linked"] + r["reuse_files"]["copied"] >= 1
+        assert rec["original_device"] == "cpu" and hq["original_device"]
+        assert rec["ply"] == f"/api/inspections/{second['id']}/recon3d/points.ply" and "_ply_path" not in rec
+        assert rec["pins"][0]["part"] == "front_bumper"  # re-projected for the new inspection's boxes
+        assert hq["pins"] == first["recon3d_hq"]["pins"] and hq["pins_note"] is None  # identical 2D boxes
+        assert hq["cropped"] is True and hq["report"]["n_registered"] == 6
+        assert c.get(rec["ply"]).content.endswith(b"WEB")
+        assert c.get(hq["splat"]).content.endswith(b"CAR") and c.get(hq["splat_full"]).content.endswith(b"SPLAT")
+        job2 = tmp_path / "data" / "jobs" / second["id"]
+        assert not (job2 / "upload").exists()  # the raw upload is still deleted
+        assert (job2 / "recon3d_reused" / "points_web.ply").is_file() and not (job2 / "recon3d").exists()
+        # the reused copies are not counted as a new measured HQ run, nor indexed
+        assert _jobs(c).last_hq_run()["seconds_total"] == 3.0
+        index2 = json.loads((tmp_path / "data" / "cache" / "recon3d_index.json").read_text())["entries"]
+        assert index2 == index
+
+
+@pytest.mark.parametrize("change", [{"frames_sha256": "cd" * 32}, {"fps": 4.0}])
+def test_different_frames_or_config_rebuilds(tmp_path: Path, world: World, change: dict[str, Any]) -> None:
+    hq_calls: list[Any] = []
+    with _reuse_client(tmp_path, world, hq_calls) as c:
+        run_inspection(c)
+        for k, v in change.items():
+            setattr(world.inspector, k, v)
+        second = run_inspection(c)
+        assert world.recon_builds == 2 and len(hq_calls) == 2
+        assert "reused" not in second["recon3d"] and "reused" not in second["recon3d_hq"]
+        assert len(json.loads((tmp_path / "data" / "cache" / "recon3d_index.json").read_text())["entries"]) == 4
+
+
+def test_different_hq_steps_rebuilds_hq_only(tmp_path: Path, world: World) -> None:
+    hq_calls: list[Any] = []
+    with _reuse_client(tmp_path / "a", world, hq_calls) as c:
+        first = run_inspection(c)
+    world2 = World()
+    # same frames and frame config, other Brush steps: the cloud is reused, the splats are rebuilt
+    with _reuse_client(tmp_path / "a", world2, hq_calls, hq3d_steps=5000) as c:
+        second = run_inspection(c)
+        assert second["recon3d"]["reused_from_job"] == first["id"] and world2.recon_builds == 0
+        assert "reused" not in second["recon3d_hq"] and hq_calls == [30_000, 5000]
+
+
+def test_missing_source_files_fall_back_to_a_build(tmp_path: Path, world: World) -> None:
+    hq_calls: list[Any] = []
+    with _reuse_client(tmp_path, world, hq_calls) as c:
+        first = run_inspection(c)
+        job1 = tmp_path / "data" / "jobs" / first["id"]
+        (job1 / "recon3d" / "depth.npz").unlink()
+        (job1 / "recon3d_hq" / "splat_car.ply").unlink()
+        second = run_inspection(c)
+        assert world.recon_builds == 2 and len(hq_calls) == 2
+        assert second["recon3d"]["status"] == "done" and "reused" not in second["recon3d"]
+        assert second["recon3d_hq"]["status"] == "done" and "reused" not in second["recon3d_hq"]
+        job2 = tmp_path / "data" / "jobs" / second["id"]
+        assert not (job2 / "recon3d_reused").exists() and not (job2 / "recon3d_hq_reused").exists()
+        third = run_inspection(c)  # the index now points at the second (newest) builds
+        assert third["recon3d"]["reused_from_job"] == second["id"]
+        assert third["recon3d_hq"]["reused_from_job"] == second["id"]
+
+
+def test_reuse_index_survives_restart_and_is_backfilled(tmp_path: Path, world: World) -> None:
+    hq_calls: list[Any] = []
+    with _reuse_client(tmp_path, world, hq_calls) as c:
+        first = run_inspection(c)
+    index_path = tmp_path / "data" / "cache" / "recon3d_index.json"
+    assert index_path.is_file()
+    index_path.unlink()  # e.g. jobs from before the index existed: rebuilt from the job states at startup
+    world2 = World()
+    with _reuse_client(tmp_path, world2, hq_calls) as c:
+        assert len(json.loads(index_path.read_text())["entries"]) == 2
+        second = run_inspection(c)
+        assert second["recon3d"]["reused_from_job"] == first["id"] and world2.recon_builds == 0
+        assert second["recon3d_hq"]["reused_from_job"] == first["id"] and len(hq_calls) == 1
+
+
+def test_reuse_disabled_always_builds(tmp_path: Path, world: World, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("AVTO_REUSE_3D", "0")
+    assert Settings.from_env(tmp_path).reuse_3d is False
+    monkeypatch.delenv("AVTO_REUSE_3D")
+    assert Settings.from_env(tmp_path).reuse_3d is True
+    hq_calls: list[Any] = []
+    with _reuse_client(tmp_path, world, hq_calls, reuse_3d=False) as c:
+        run_inspection(c)
+        second = run_inspection(c)
+        assert world.recon_builds == 2 and len(hq_calls) == 2 and "reused" not in second["recon3d_hq"]
+
+
+def test_attach_stored_hq_to_a_finished_job_after_the_fact(tmp_path: Path, world: World) -> None:
+    """scripts/reuse_3d.py: a finished job whose HQ build was interrupted gets the stored build of the same input."""
+    hq_calls: list[Any] = []
+    with _reuse_client(tmp_path, world, hq_calls) as c:
+        first = run_inspection(c)
+    with _reuse_client(tmp_path, World(), hq_calls, reuse_3d=False) as c:
+        second = run_inspection(c)
+    job2 = tmp_path / "data" / "jobs" / second["id"] / "state.json"
+    st = json.loads(job2.read_text())
+    st["recon3d_hq"] = {**st["recon3d_hq"], "status": "error", "error": "interrupted (Brush killed)"}
+    job2.write_text(json.dumps(st))
+
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("reuse_3d_script", Path(__file__).parents[1] / "scripts" / "reuse_3d.py")
+    mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    assert mod.main(["--data-dir", str(tmp_path / "data"), "--job", second["id"]]) == 0
+    hq = json.loads(job2.read_text())["recon3d_hq"]
+    assert hq["status"] == "done" and hq["reused"] is True and hq["reused_from_job"] == first["id"]
+    assert hq["replaced_error"] == "interrupted (Brush killed)" and hq["original_seconds"] == 3.0
+    assert json.loads(job2.read_text())["recon3d"].get("reused") is None  # its own finished cloud is kept
+    with _reuse_client(tmp_path, World(), hq_calls) as c:
+        assert c.get(f"/api/inspections/{second['id']}/recon3d/splat.ply").content.endswith(b"CAR")
