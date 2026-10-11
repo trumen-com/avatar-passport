@@ -577,7 +577,7 @@ function renderPassport(job) {
   const pdf = safeHref(media.pdf);
   const pdfTop = $("#pdf-link-top");
   if (pdf) {
-    pdfTop.href = pdf;
+    pdfTop.href = pdfInLang(pdf);
     pdfTop.hidden = false;
   } else {
     pdfTop.hidden = true;
@@ -676,7 +676,7 @@ function renderSummary(r) {
   );
   const notes = [];
   if (low.length) notes.push(`+${low.length} uncertain.`);
-  if (findings.length) notes.push("Automatic: check each one on the car.");
+  if (findings.length) notes.push("Check each one on the car.");
   else notes.push("Nothing detected. Still check the car.");
   $("#sum-note").textContent = notes.join(" ");
   const t = state.damageTotals || { sum: 0, unpriced: 0 };
@@ -695,6 +695,8 @@ function renderSummary(r) {
     parts.set(f.part, p);
   }
   const list = [...parts.values()].sort((a, b) => a.lowOnly - b.lowOnly || (SEV_RANK[b.sev] || 0) - (SEV_RANK[a.sev] || 0) || String(a.part).localeCompare(String(b.part)));
+  $("#parts-title").hidden = true;
+  $("#parts-list").hidden = true;
   $("#parts-title").textContent = `Parts with findings · ${list.length}`;
   $("#parts-list").replaceChildren(
     ...(list.length
@@ -796,6 +798,8 @@ function toggleTheme() {
   }
   syncThemeButton();
 }
+
+const pdfInLang = (u) => (u && getLang() !== "en" ? `${u}?lang=${getLang()}` : u);
 
 // ---------- tabs (a scrolling top bar on phones, a left sidebar on wide screens; see style.css)
 
@@ -945,7 +949,12 @@ function renderVin(r, extra) {
       el("dd", {}, `one of ${dec.model_year_candidates.join(", ")}`, sources.model_year_candidates ? el("span", { class: "badge src" }, sourceText(sources.model_year_candidates)) : el("span", { class: "badge src" }, "position 10")),
     );
   }
-  if (rows.length) box.append(el("dl", { class: "kv" }, rows));
+  const KEY = new Set(["Manufacturer", "Country", "Model", "Model year"]);
+  const main = [];
+  for (let i = 0; i < rows.length; i += 2) if (KEY.has(rows[i].textContent)) main.push(rows[i].cloneNode(true), rows[i + 1].cloneNode(true));
+  for (const b of main.flatMap((n) => [...n.querySelectorAll(".src")])) b.remove();
+  if (main.length) box.append(el("dl", { class: "kv" }, main));
+  if (rows.length) box.append(el("details", { class: "more" }, el("summary", {}, "Details"), el("dl", { class: "kv" }, rows)));
   else box.append(el("p", { class: "muted small" }, "No decode fields were found for this VIN."));
   const notes = Array.isArray(dec.notes) ? dec.notes : [];
   if (notes.length) {
@@ -1214,7 +1223,6 @@ function findingRows(list, costFor, counter) {
     if (!cost || cost.price_uzs == null) counter.unpriced += 1;
     else counter.sum += Number(cost.price_uzs);
     const sev = f.severity || null;
-    const score = Number(f.max_score);
     return el(
       "tr",
       { "data-part": f.part },
@@ -1226,7 +1234,6 @@ function findingRows(list, costFor, counter) {
           "span",
           {},
           humanize(f.damage),
-          el("div", { class: "small muted" }, `${f.n_observations ?? "?"} view${f.n_observations === 1 ? "" : "s"}${Number.isFinite(score) ? ` · score ${score.toFixed(2)}` : ""}`),
           isWindshieldGlass(f) ? el("div", { class: "small finding-note" }, "Often a reflection.") : null,
         ),
       ),
@@ -1424,38 +1431,28 @@ async function renderHistory(r, job) {
   const box = $("#history-body");
   box.replaceChildren();
   if (!r.vin || r.vin_status === "could_not_read") return;
-  box.append(el("p", { class: "small muted" }, "Loading inspection history…"));
   try {
     const h = await apiJSON(`/api/vin/${encodeURIComponent(r.vin)}/history`);
-    const list = Array.isArray(h.inspections) ? h.inspections : [];
-    box.replaceChildren();
+    const list = (Array.isArray(h.inspections) ? h.inspections : []).slice().sort((a, b) => String(b.created_utc).localeCompare(String(a.created_utc)));
     if (!list.length) return;
     const currentIds = new Set([String(state.jobId), String(job.inspection_id)]);
-    box.append(
-      el("details", { class: "more", open: list.length > 1 },
-        el("summary", {}, `All AvtoPassport inspections of this VIN (${list.length})`),
-        el(
-          "ul",
-          { class: "history-list" },
-          list.map((it) => {
-            const isCurrent = currentIds.has(String(it.id)) || currentIds.has(String(it.job_id));
-            const u = new URL(location.href);
-            u.search = "";
-            u.hash = "";
-            u.searchParams.set("inspection", it.job_id ?? it.id);  // the API serves jobs by job id
-            return el(
-              "li",
-              { class: isCurrent ? "current" : "" },
-              el("span", {}, fmtDate(it.created_utc)),
-              el("span", {}, `${it.n_findings ?? "?"} finding${it.n_findings === 1 ? "" : "s"}`),
-              isCurrent ? el("span", { class: "badge info" }, "this inspection") : el("a", { href: u.pathname + u.search }, "Open"),
-            );
-          }),
-        ),
-      ),
-    );
+    const item = (it) => {
+      const isCurrent = currentIds.has(String(it.id)) || currentIds.has(String(it.job_id));
+      const u = new URL(location.href);
+      u.search = "";
+      u.hash = "";
+      u.searchParams.set("inspection", it.job_id ?? it.id); // the API serves jobs by job id
+      return el("li", { class: isCurrent ? "current" : "" },
+        el("span", { class: "tl-date" }, fmtDateShort(it.created_utc) || "?"),
+        el("span", { class: "tl-what" }, `${it.n_findings ?? "?"} finding${it.n_findings === 1 ? "" : "s"}`),
+        isCurrent ? el("span", { class: "badge info" }, "this inspection") : el("a", { href: u.pathname + u.search }, "Open"));
+    };
+    box.append(el("h3", { class: "tl-title" }, `Inspection history (${list.length})`), el("ol", { class: "timeline" }, list.slice(0, 3).map(item)));
+    if (list.length > 3) box.append(el("details", { class: "more" }, el("summary", {}, `Show all (${list.length})`), el("ol", { class: "timeline" }, list.slice(3).map(item))));
+    box.append(el("p", { class: "small muted", style: { marginTop: "0.6rem" } }, "Owners, accidents, insurance: ",
+      el("a", { href: "sandbox.html" }, "registry demo (synthetic data)")));
   } catch (e) {
-    box.replaceChildren(el("p", { class: "small error" }, `Could not load the history of this VIN: ${e.message}`));
+    box.replaceChildren(el("p", { class: "small error" }, `Could not load the history: ${e.message}`));
   }
 }
 
@@ -1633,7 +1630,7 @@ function reuseNote(r) {
   const dev = fmtDevice(r.original_device);
   const orig = took ? ` (first built in ${took}${dev ? ` on ${dev}` : ""})` : "";
   return el("span", { class: "small muted", style: { display: "block" } },
-    `Same video as the inspection of ${when}, so the saved model was reused${orig}.`);
+    `Reused: same video as on ${when}.`);
 }
 const HQ_ACTIVE = new Set(["waiting", "queued", "running"]);
 
@@ -1741,7 +1738,7 @@ function renderRecon(r) {
       if (!ply) {
         errEl.textContent = "The server reports the 3D model as done but returned no model file.";
         errEl.hidden = false;
-      } else if (state.viewerPly !== ply) {
+      } else if (state.viewerPly !== ply && $("#recon-card").hidden === false) {
         state.pending3d.cloud = { url: ply, pins: confidentPins(r.pins), view: r.view || null };
         mountPending3d();
       }
@@ -1824,6 +1821,8 @@ function renderParts3d(h) {
   // ready right after the camera poses, while the splats may still be training
   const partsUrl = safeHref(h && h.parts3d);
   $("#parts3d-card").hidden = !partsUrl;
+  $("#recon-card").hidden = Boolean(partsUrl); // the parts model replaces the quick point cloud
+  if (partsUrl) state.pending3d.cloud = null;
   if (!partsUrl) return;
   if (state.viewerPartsUrl !== partsUrl) {
     state.pending3d.parts = partsUrl;
@@ -2044,7 +2043,7 @@ function renderVerification(job, r, extra, media) {
   links.replaceChildren();
   const pdf = safeHref(media.pdf);
   setTile("report", pdf ? "PDF ready" : "No PDF", r.frames_sha256 ? `frames SHA-256 ${String(r.frames_sha256).slice(0, 12)}…` : "", pdf ? "ok" : "warn");
-  if (pdf) links.append(el("a", { class: "btn btn-primary", href: pdf, download: "" }, "Download PDF passport"));
+  if (pdf) links.append(el("a", { class: "btn btn-primary", href: pdfInLang(pdf), download: "" }, "Download PDF passport"));
   else links.append(el("span", { class: "muted small" }, "PDF not available for this inspection."));
   const report = pick(job, "report");
   if (typeof report === "string" && safeHref(report)) {

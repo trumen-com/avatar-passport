@@ -210,3 +210,17 @@ def test_diff_same_low_confidence_noise_is_not_new_damage() -> None:
     cur = [_cf("right_quarter-panel", "scratch", "severe", 0.26, 1)]
     d = diff(prev, cur)
     assert d["new"] == [] and d["resolved"] == [] and len(d["possible_changes"]) == 2
+
+
+def test_pdf_text_in_russian_and_uzbek(tmp_path: Path) -> None:
+    from avtopassport.passport.report import _t, _word, build_pdf, part_name
+
+    assert part_name("left_back-door", "ru") == "Левая задняя дверь" and part_name("left_fender", "ru") == "Левое переднее крыло"
+    assert part_name("right_rocker-panel", "uz") == "O‘ng ostona" and part_name("front-bumper", "en") == "front bumper"
+    assert _word("dent", "uz") == "botiq" and _word("severe", "ru") == "сильное" and _word("other", "ru") == "other"
+    assert _t("from", "uz", v="1 200 000") == "1 200 000 so‘mdan"
+    report = {"result": {"vin": None, "vin_status": "could_not_read", "findings": [
+        {"part": "left_back-door", "damage": "dent", "severity": "severe", "action": "replace"}], "costs": []}}
+    for lang in ("en", "ru", "uz"):
+        pdf = build_pdf(report, tmp_path / f"r_{lang}.pdf", lang=lang)
+        assert pdf.read_bytes().startswith(b"%PDF")

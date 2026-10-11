@@ -1077,12 +1077,33 @@ class JobManager:
         p = Path(raw)
         return p if p.is_file() and _contained(p, self.data_dir) else None
 
-    def resolve_pdf(self, job_id: str) -> Path | None:
+    def resolve_pdf(self, job_id: str, lang: str = "en") -> Path | None:
+        """The English PDF made with the passport, or a Russian / Uzbek copy built on first request (then cached)."""
         st = self._state(job_id)
         if st is None or not st.get("_pdf"):
             return None
         p = self.job_dir(job_id) / st["_pdf"]
-        return p if p.is_file() and _contained(p, self.job_dir(job_id)) else None
+        if not (p.is_file() and _contained(p, self.job_dir(job_id))):
+            return None
+        if lang not in ("ru", "uz"):
+            return p
+        out = self.job_dir(job_id) / f"report_{lang}.pdf"
+        if out.is_file():
+            return out
+        report = st.get("report")
+        media = (st.get("result") or {}).get("extra", {}).get("media") or st.get("media") or {}
+        spin = media.get("spin") or []
+        images = [f for u in spin[: self.settings.pdf_images] if (f := self.resolve_frame(job_id, u.rsplit("/", 1)[-1]))]
+        if not isinstance(report, dict):
+            return p
+        try:
+            from ..passport.report import build_pdf  # noqa: PLC0415
+
+            build_pdf(report, out, images=images, lang=lang)
+        except Exception:
+            log.exception("PDF in %s for %s failed; serving English", lang, job_id)
+            return p
+        return out if out.is_file() else p
 
     # ----- reuse of finished 3D builds (api/reuse3d.py)
     def _register_build(self, job_id: str, kind: str) -> None:

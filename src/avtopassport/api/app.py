@@ -282,9 +282,10 @@ def create_app(*, settings: Settings | None = None, backends: Backends | None = 
         return FileResponse(path, media_type=media, headers={"Cache-Control": "private, max-age=86400"})
 
     @app.get("/api/inspections/{job_id}/report.pdf")
-    def get_report_pdf(job_id: str) -> FileResponse:
+    def get_report_pdf(job_id: str, lang: Annotated[str, Query(pattern="^(en|ru|uz)$")] = "en") -> FileResponse:
+        """The passport PDF; lang=ru / uz builds (once) and serves a Russian / Uzbek copy."""
         st = _job_or_404(job_id)
-        path = jobs.resolve_pdf(job_id)
+        path = jobs.resolve_pdf(job_id, lang)
         if path is None:
             raise HTTPException(404, "PDF not available" if st["status"] == "done" else "inspection not finished")
         name = f"avtopassport_{st.get('inspection_id') or job_id[:8]}.pdf"

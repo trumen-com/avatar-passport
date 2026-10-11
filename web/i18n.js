@@ -141,6 +141,10 @@ const E = {
   "No damage was detected on any part.": ["Ни на одной детали повреждений не найдено.", "Hech bir detalda shikast topilmadi."],
   "Make not decoded": ["Марка не определена", "Marka aniqlanmadi"],
   "✓ Check digit": ["✓ Контрольная цифра", "✓ Nazorat raqami"],
+  "Check each one on the car.": ["Проверьте каждое на машине.", "Har birini mashinada tekshiring."],
+  "this inspection": ["этот осмотр", "shu ko‘rik"],
+  "Owners, accidents, insurance:": ["Владельцы, ДТП, страховка:", "Egalar, avariyalar, sug‘urta:"],
+  "registry demo (synthetic data)": ["демо реестра (синтетические данные)", "reyestr demosi (sintetik ma’lumotlar)"],
   "Check digit fails": ["Контрольная цифра не совпадает", "Nazorat raqami mos emas"],
   // parts viewer
   "Take apart": ["Разобрать", "Qismlarga ajratish"],
@@ -207,7 +211,6 @@ const E = {
   "First inspection of this VIN": ["Первый осмотр этого VIN", "Bu VIN uchun birinchi ko‘rik"],
   "The next inspection will show what changed.": ["Следующий осмотр покажет, что изменилось.", "Keyingi ko‘rik nima o‘zgarganini ko‘rsatadi."],
   "How changes are judged": ["Как оцениваются изменения", "O‘zgarishlar qanday baholanadi"],
-  "this inspection": ["этот осмотр", "shu ko‘rik"],
   "Open": ["Открыть", "Ochish"],
   // 3D tab
   "Drag to rotate. Pinch or scroll to zoom.": ["Тяните, чтобы вращать. Щипок или колесо — масштаб.", "Aylantirish uchun suring. Kattalashtirish uchun chimchilang."],
@@ -349,6 +352,9 @@ const RULES = [
   [/^(\d+) findings?$/, (m, l) => (l === "ru" ? `находок: ${m[1]}` : `${m[1]} ta topilma`)],
   [/^Built in (.+?) from (\d+) frames\.$/, (m, l) => (l === "ru" ? `Построена за ${m[1]} по ${m[2]} кадрам.` : `${m[2]} ta kadrdan ${m[1]} da qurildi.`)],
   [/^Built in (.+?)\.$/, (m, l) => (l === "ru" ? `Построена за ${m[1]}.` : `${m[1]} da qurildi.`)],
+  [/^Reused: same video as on (.+)\.$/, (m, l) => (l === "ru" ? `Использована сохранённая модель: то же видео, что ${m[1]}.` : `Saqlangan model ishlatildi: ${m[1]} dagi bilan bir xil video.`)],
+  [/^Inspection history \((\d+)\)$/, (m, l) => (l === "ru" ? `История осмотров (${m[1]})` : `Ko‘riklar tarixi (${m[1]})`)],
+  [/^Show all \((\d+)\)$/, (m, l) => (l === "ru" ? `Показать все (${m[1]})` : `Hammasini ko‘rsatish (${m[1]})`)],
   [/^Same video as the inspection of (.+), so the saved model was reused(.*)\.$/, (m, l) => (l === "ru" ? `То же видео, что в осмотре от ${m[1]}, поэтому использована сохранённая модель${m[2]}.` : `${m[1]} dagi ko‘rik bilan bir xil video, shuning uchun saqlangan model ishlatildi${m[2]}.`)],
   [/^(\d+) places? within (\d+) km of (.+)\.$/, (m, l) => (l === "ru" ? `Мест в радиусе ${m[2]} км: ${m[1]}.` : `${m[2]} km radiusda ${m[1]} ta joy.`)],
   [/^Searching within (\d+) km of (.+)…$/, (m, l) => (l === "ru" ? `Поиск в радиусе ${m[1]} км…` : `${m[1]} km radiusda qidirilmoqda…`)],
