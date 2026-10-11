@@ -38,6 +38,7 @@
         <button id="tab-model3d" class="tab" type="button" role="tab" data-tab="model3d" aria-controls="panel-model3d" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg><span class="tab-label">3D model</span><span id="tabc-model3d" class="tab-count"></span></button>
         <button id="tab-tryon" class="tab" type="button" role="tab" data-tab="tryon" aria-controls="panel-tryon" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="13.5" cy="6.5" r="1"/><circle cx="17.5" cy="10.5" r="1"/><circle cx="8.5" cy="7.5" r="1"/><circle cx="6.5" cy="12.5" r="1"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1a1.6 1.6 0 0 1 1.6-1.7h2c3.1 0 5.6-2.5 5.6-5.5C22 6 17.5 2 12 2Z"/></svg><span class="tab-label">Customize</span><span id="tabc-tryon" class="tab-count"></span></button>
         <button id="tab-defects" class="tab" type="button" role="tab" data-tab="defects" aria-controls="panel-defects" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8Z"/></svg><span class="tab-label">Damage</span><span id="tabc-defects" class="tab-count"></span></button>
+        <button id="tab-paint" class="tab" type="button" role="tab" data-tab="paint" aria-controls="panel-paint" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg><span class="tab-label">Paint check</span><span id="tabc-paint" class="tab-count"></span></button>
         <button id="tab-shops" class="tab" type="button" role="tab" data-tab="shops" aria-controls="panel-shops" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-5.5 10.2-7.4 11.8a1 1 0 0 1-1.2 0C9.5 20.2 4 15 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg><span class="tab-label">Body shops</span><span id="tabc-shops" class="tab-count"></span></button>
         <button id="tab-vin" class="tab" type="button" role="tab" data-tab="vin" aria-controls="panel-vin" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9v6M9 9v6M12.5 9v6M15 9v6M18 9v6"/></svg><span class="tab-label">VIN / History</span><span id="tabc-vin" class="tab-count"></span></button>
         <button id="tab-report" class="tab" type="button" role="tab" data-tab="report" aria-controls="panel-report" aria-selected="false" tabindex="-1"><svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8M16 17H8M10 9H8"/></svg><span class="tab-label">Report</span><span id="tabc-report" class="tab-count"></span></button>
@@ -320,6 +321,25 @@
                 </details>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Paint check (trade-in): Trumen Paint Check engine, analysed on the phone -->
+        <div id="panel-paint" class="tab-panel" role="tabpanel" aria-labelledby="tab-paint" tabindex="-1" hidden>
+          <p class="panel-intro">Trade-in: photograph each gap between two panels. Panels with different paint are marked for a paint-gauge check.</p>
+          <div class="card">
+            <h2>Paint check <span class="badge">trade-in</span></h2>
+            <p class="small muted" style="margin-top:0">Stand about half a metre away, gap in the middle of the photo. Tap a number or "Photo".</p>
+            <div id="paint-check"><p class="small muted">Loading…</p></div>
+            <p class="small muted" style="margin:0.75rem 0 0">Photos are checked on this phone and never uploaded. It shows which panels to gauge; it does not set the price.</p>
+            <details class="more">
+              <summary>Details</summary>
+              <p class="small muted" style="margin:0.4rem 0 0">Measured by Team Trumen on 921 held-out real panel joints (DrBimmer car parts dataset, MIT): 26% of original-paint joints flagged; a simulated 2 ΔE repaint marked at least "check with a gauge" on 90% of panels. Real repaints are not measured yet. <a href="paint/README.md" target="_blank" rel="noopener">Method and scripts</a>.</p>
+            </details>
+          </div>
+          <div id="paint3d-card" class="card" hidden>
+            <h2>Flagged panels in 3D</h2>
+            <div id="paint3d-viewer"></div>
           </div>
         </div>
 

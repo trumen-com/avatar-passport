@@ -776,6 +776,43 @@ async function mountOverviewParts(url) {
   }
 }
 
+// ---------- Paint check (trade-in): Trumen Paint Check engine; flagged panels are coloured on the parts 3D model
+
+async function initPaint() {
+  if (state.paint) return;
+  state.paint = "loading";
+  try {
+    const mod = await import("./paintcheck.js");
+    state.paint = mod.createPaintCheck($("#paint-check"), { onPanels: (p) => showPaintOn3d(p, mod) });
+  } catch (e) {
+    console.error(e);
+    state.paint = null;
+    $("#paint-check").replaceChildren(el("p", { class: "error" }, `Paint check could not start: ${e.message}`));
+  }
+}
+
+async function showPaintOn3d(panels, mod) {
+  const flagged = Object.entries(panels).filter(([, s]) => s.status !== "original");
+  setTabCount("paint", flagged.length ? String(flagged.length) : "", "warn");
+  const url = state.ovPartsUrl || state.viewerPartsUrl;
+  const card = $("#paint3d-card");
+  if (!flagged.length || !url) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  const damage = {};
+  for (const [id, s] of flagged) damage[mod.PAINT_TO_SCAN[id]] = { severity: mod.STATUS[s.status][2], items: [mod.STATUS[s.status][0]] };
+  try {
+    const [pv, data] = await Promise.all([import("./partsviewer.js"), partsData(url)]);
+    if (state.paint3d) state.paint3d.dispose();
+    state.paint3d = pv.createPartsViewer($("#paint3d-viewer"), data, { damage, mode: 2, compact: true, car: state.carName });
+  } catch (e) {
+    console.error(e);
+    card.hidden = true;
+  }
+}
+
 // ---------- light / dark theme (light by default, like the reference design; the choice is kept in this browser)
 
 function syncThemeButton() {
@@ -803,7 +840,7 @@ const pdfInLang = (u) => (u && getLang() !== "en" ? `${u}?lang=${getLang()}` : u
 
 // ---------- tabs (a scrolling top bar on phones, a left sidebar on wide screens; see style.css)
 
-const TABS = ["overview", "model3d", "tryon", "defects", "shops", "vin", "report"]; // sidebar order
+const TABS = ["overview", "model3d", "tryon", "defects", "paint", "shops", "vin", "report"]; // sidebar order
 
 function tabFromHash() {
   const h = decodeURIComponent(location.hash.replace(/^#/, ""));
@@ -838,6 +875,7 @@ function showTab(name, { focus = false, scroll = true } = {}) {
     if (panels.getBoundingClientRect().top < margin) panels.scrollIntoView({ block: "start" });
   }
   if (name === "model3d") mountPending3d();
+  if (name === "paint") initPaint();
   if (name !== "overview") toggleSpinPlay(false);
 }
 

@@ -1,0 +1,66 @@
+{
+ "settings": {
+  "maxSide": 720,
+  "searchBand": 0.22,
+  "margin": 0.025,
+  "sampleWidth": 0.1,
+  "sampleSpan": [
+   0.18,
+   0.82
+  ],
+  "diffuse": [
+   0.15,
+   0.6
+  ],
+  "checkAt": 1,
+  "flagAt": 1.6,
+  "panelAt": 0.45,
+  "wTexture": 0,
+  "wGloss": 0,
+  "strips": 3,
+  "angleK": 30
+ },
+ "factors": {
+  "bumper": 1.4,
+  "lid": 1.8
+ },
+ "photos": 425,
+ "joints": {
+  "all": {
+   "n": 469,
+   "ff": 0.264,
+   "c2": 0.638,
+   "c3": 0.783
+  },
+  "side": {
+   "n": 255,
+   "ff": 0.255,
+   "c2": 0.804,
+   "c3": 0.945
+  },
+  "corner": {
+   "n": 214,
+   "ff": 0.276,
+   "c2": 0.439,
+   "c3": 0.589
+  },
+  "total": 921,
+  "retake": 0.491,
+  "gapAuto": 0.689
+ },
+ "panels": {
+  "n": 133,
+  "falseRepainted": 0.128,
+  "falseAnyFlag": 0.489,
+  "caught": {
+   "2": 0.647,
+   "3": 0.752,
+   "1.5": 0.511
+  },
+  "caughtOrSuspect": {
+   "2": 0.895,
+   "3": 0.947,
+   "1.5": 0.805
+  }
+ }
+}
