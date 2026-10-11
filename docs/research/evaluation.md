@@ -135,6 +135,26 @@ _not generated yet_
 _not generated yet_
 <!-- END:failures -->
 
+### VIN reader on synthetic VINs (2026-10-11)
+
+`scripts/vin_ocr_synthetic.py` was run on 60 random valid VINs. The images are rendered, not photographed. The script
+draws each VIN with WMIs from our table, 5 fonts, light and dark plates and distractor text lines. Every second image is
+"hard": tilt +-5 degrees, blur, brightness, noise and JPEG 55-90.
+
+| Group | Images | Read exactly | Read wrong | Not read |
+|---|---|---|---|---|
+| Easy | 30 | 30 | 0 | 0 |
+| Hard | 30 | 30 | 0 | 0 |
+
+The reader took 0.30 s per image on the laptop CPU.
+
+These are clean printed fonts, so this shows the reader copes with other characters and other VINs. It does not show
+field accuracy:
+- Real plates are stamped, embossed or dot-matrix, and have glare and perspective.
+- On real photos, the only evidence is 3 photos of one car's VIN. All three were read with a valid check digit, and
+  the ground truth has not been entered.
+- The Phase 2 test set is still needed for field accuracy.
+
 ## Model choice
 
 To be written from the generated tables once they exist (which damage model, which thresholds), with a short ADR in
