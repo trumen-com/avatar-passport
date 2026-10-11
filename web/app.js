@@ -32,7 +32,7 @@ const state = {
   pending3d: { cloud: null, hq: null }, // finished 3D models, mounted when the 3D tab is first opened
 };
 
-const capture = { video: null, vinPhoto: null };
+const capture = { video: null, vinPhoto: null, demo: false }; // demo: use the demo files already on the server
 
 // ---------------------------------------------------------------- helpers
 
@@ -209,6 +209,10 @@ async function loadHealth() {
     pill.textContent = h.ok ? `Server ${ready ? "ready" : "up"}${h.device ? " · " + h.device : ""}` : "Server problem";
     pill.className = `pill ${ready ? "ok" : "warn"}`;
     if (h.version) $("#version-text").textContent = `v${h.version}`;
+    if (h.demo && h.demo.video) {
+      $("#demo-files").textContent = `${h.demo.video}${h.demo.vin_photo ? ` + ${h.demo.vin_photo}` : ""} · already on the server, no upload`;
+      $("#demo-box").hidden = false;
+    }
     const msgs = [];
     if (!h.ok) msgs.push("The server health check reports a problem.");
     if (h.models_ready === false) msgs.push("The models are not loaded on the server yet, so an inspection may wait or fail.");
@@ -253,8 +257,39 @@ function readVideoDuration(file) {
   });
 }
 
+function useDemo() {
+  const d = state.health && state.health.demo;
+  if (!d) return;
+  capture.demo = true;
+  capture.video = null;
+  capture.vinPhoto = null;
+  for (const id of ["#video-camera", "#video-library", "#vin-camera", "#vin-library"]) $(id).value = "";
+  $("#video-info").textContent = `Demo: ${d.video} (${fmtBytes(d.video_bytes)})`;
+  $("#video-info").className = "file-info";
+  $("#vin-photo-info").textContent = d.vin_photo ? `Demo: ${d.vin_photo}` : "No VIN photo selected.";
+  $("#vin-photo-info").className = d.vin_photo ? "file-info" : "file-info muted";
+  $("#vin-thumb").hidden = true;
+  $("#demo-btn").classList.add("active");
+  updateSubmit();
+}
+
+function clearDemo() {
+  if (!capture.demo) return;
+  capture.demo = false;
+  $("#demo-btn").classList.remove("active");
+  if (!capture.video) {
+    $("#video-info").textContent = "No video selected.";
+    $("#video-info").className = "file-info muted";
+  }
+  if (!capture.vinPhoto) {
+    $("#vin-photo-info").textContent = "No VIN photo selected.";
+    $("#vin-photo-info").className = "file-info muted";
+  }
+}
+
 async function onVideoPicked(file) {
   capture.video = file || null;
+  clearDemo();
   const info = $("#video-info");
   if (!file) {
     info.textContent = "No video selected.";
@@ -279,6 +314,7 @@ async function onVideoPicked(file) {
 
 function onVinPhotoPicked(file) {
   capture.vinPhoto = file || null;
+  clearDemo();
   const info = $("#vin-photo-info");
   const thumb = $("#vin-thumb");
   if (thumb.dataset.url) URL.revokeObjectURL(thumb.dataset.url);
@@ -315,10 +351,12 @@ function onVinTextInput() {
 
 function updateSubmit() {
   const btn = $("#submit-btn");
-  btn.disabled = !capture.video;
-  $("#submit-hint").textContent = capture.video
-    ? "Uploads the video (and VIN photo) to the AvtoPassport server."
-    : "Select a walkaround video to start.";
+  btn.disabled = !capture.video && !capture.demo;
+  $("#submit-hint").textContent = capture.demo
+    ? "Uses the demo files on the server. Nothing is uploaded."
+    : capture.video
+      ? "Uploads the video (and VIN photo) to the server."
+      : "Choose a walkaround video to start.";
 }
 
 function setUpload(fraction, text) {
@@ -341,7 +379,32 @@ function showJobError(msg) {
   $("#job").hidden = false;
 }
 
+async function startDemo() {
+  const fd = new FormData();
+  const vinText = normVin($("#vin-text").value);
+  if (vinText) fd.append("vin_text", vinText);
+  $("#job").hidden = false;
+  $("#job-error").hidden = true;
+  $("#retry-btn").hidden = true;
+  $("#steps").replaceChildren();
+  $("#job-status").textContent = "";
+  setFormDisabled(true);
+  setUpload(1, "Demo files are already on the server.");
+  $("#job").scrollIntoView({ block: "center", behavior: "smooth" });
+  try {
+    const data = await apiJSON("/api/inspections/demo", { method: "POST", body: fd });
+    startJob(String(data.id), data.status_url);
+  } catch (e) {
+    setFormDisabled(false);
+    showJobError(`Could not start the demo: ${e.message}`);
+  }
+}
+
 function startUpload() {
+  if (capture.demo) {
+    startDemo();
+    return;
+  }
   if (!capture.video) return;
   const fd = new FormData();
   fd.append("video", capture.video, capture.video.name || "walkaround.mp4");
@@ -600,13 +663,13 @@ function renderSummary(r) {
     ),
   );
   const notes = [];
-  if (low.length) notes.push(`+ ${low.length} low-confidence finding${low.length === 1 ? "" : "s"} to verify.`);
-  if (findings.length) notes.push("Automatic detection: check each finding on the car.");
-  else notes.push("The models found nothing above their thresholds; this does not guarantee the car is damage-free.");
+  if (low.length) notes.push(`+${low.length} uncertain.`);
+  if (findings.length) notes.push("Automatic: check each one on the car.");
+  else notes.push("Nothing detected. Still check the car.");
   $("#sum-note").textContent = notes.join(" ");
   const t = state.damageTotals || { sum: 0, unpriced: 0 };
   $("#sum-total").textContent = main.length ? (t.sum > 0 ? `from ${fmtUZS(t.sum)}` : "no price data") : "nothing to repair";
-  $("#sum-total-note").textContent = main.length && t.sum > 0 ? `"From" prices from local listings${t.unpriced ? `; ${t.unpriced} item${t.unpriced === 1 ? "" : "s"} without price data not included` : ""}.` : "";
+  $("#sum-total-note").textContent = main.length && t.sum > 0 ? `Starting prices${t.unpriced ? ` · ${t.unpriced} item${t.unpriced === 1 ? "" : "s"} without a price` : ""}` : "";
 
   // Parts with findings: worst confirmed severity per part, or "check" when the part only has low-confidence findings.
   const parts = new Map();
@@ -741,6 +804,9 @@ const VIN_STATUS = {
   could_not_read: ["could not read", "err", "The VIN could not be read"],
 };
 
+const SOURCE_TEXT = { wmi_table: "WMI table", vpic: "NHTSA", vin_rules: "VIN rules", ocr: "photo", manual: "typed" };
+const sourceText = (k) => SOURCE_TEXT[k] || humanize(k);
+
 const DECODE_FIELDS = [
   ["manufacturer", "Manufacturer"],
   ["country", "Country"],
@@ -791,12 +857,12 @@ function renderVin(r, extra) {
     if (key === "model_year" && Array.isArray(dec.model_year_candidates) && dec.model_year_candidates.length > 1) {
       v = `${v} (candidates: ${dec.model_year_candidates.join(", ")})`;
     }
-    rows.push(el("dt", {}, label), el("dd", {}, String(v), sources[key] ? el("span", { class: "badge src", title: "Source" }, sources[key]) : null));
+    rows.push(el("dt", {}, label), el("dd", {}, String(v), sources[key] ? el("span", { class: "badge src", title: "Source" }, sourceText(sources[key])) : null));
   }
   if (dec.model_year == null && Array.isArray(dec.model_year_candidates) && dec.model_year_candidates.length) {
     rows.push(
       el("dt", {}, "Model year"),
-      el("dd", {}, `one of ${dec.model_year_candidates.join(", ")}`, sources.model_year_candidates ? el("span", { class: "badge src" }, sources.model_year_candidates) : el("span", { class: "badge src" }, "position 10")),
+      el("dd", {}, `one of ${dec.model_year_candidates.join(", ")}`, sources.model_year_candidates ? el("span", { class: "badge src" }, sourceText(sources.model_year_candidates)) : el("span", { class: "badge src" }, "position 10")),
     );
   }
   if (rows.length) box.append(el("dl", { class: "kv" }, rows));
@@ -866,7 +932,7 @@ function setupSpin(media, extra) {
     note.textContent = "Damage pins cannot be placed: the server did not report the frame size.";
     note.hidden = false;
   } else if (offSpin) {
-    note.textContent = `${offSpin} damage detection${offSpin === 1 ? " is" : "s are"} on frames that are not part of the spin sequence (see the damage list).`;
+    note.textContent = `${offSpin} more detection${offSpin === 1 ? " is" : "s are"} on other frames (see Damage).`;
     note.hidden = false;
   } else {
     note.hidden = true;
@@ -927,7 +993,7 @@ function showSpin(i) {
   img.alt = `Walkaround frame ${spin.idx + 1} of ${n}`;
   $("#spin-range").value = String(spin.idx);
   const pins = spin.pinsByFrame.get(stemKey(spin.names[spin.idx])) || [];
-  $("#spin-caption").textContent = `View ${spin.idx + 1} of ${n} · ${spin.names[spin.idx]}${pins.length ? ` · ${pins.length} damage pin${pins.length === 1 ? "" : "s"}` : ""}`;
+  $("#spin-caption").textContent = `View ${spin.idx + 1} of ${n}${pins.length ? ` · ${pins.length} damage box${pins.length === 1 ? "" : "es"}` : ""}`;
   for (const c of document.querySelectorAll("#spin-pin-frames .chip")) c.classList.toggle("active", Number(c.dataset.idx) === spin.idx);
   renderSpinPins(pins);
 }
@@ -1081,7 +1147,7 @@ function findingRows(list, costFor, counter) {
           {},
           humanize(f.damage),
           el("div", { class: "small muted" }, `${f.n_observations ?? "?"} view${f.n_observations === 1 ? "" : "s"}${Number.isFinite(score) ? ` · score ${score.toFixed(2)}` : ""}`),
-          isWindshieldGlass(f) ? el("div", { class: "small finding-note" }, "Reflections often trigger this class (see smoke test observations).") : null,
+          isWindshieldGlass(f) ? el("div", { class: "small finding-note" }, "Often a reflection.") : null,
         ),
       ),
       el(
@@ -1141,8 +1207,8 @@ function renderDamage(r) {
         el(
           "details",
           { class: "more low-conf" },
-          el("summary", {}, `Low confidence - please verify (${low.length})`),
-          el("p", { class: "small muted" }, `Best detection score below ${LOW_CONFIDENCE.toFixed(2)}. The models are not calibrated yet, so these are often false positives (reflections, dirt, panel gaps). Check them on the car or in the 360° view; they are not in the headline total.`),
+          el("summary", {}, `Uncertain - please check (${low.length})`),
+          el("p", { class: "small muted" }, `Score below ${LOW_CONFIDENCE.toFixed(2)}. Often reflections or dirt. Not in the total.`),
           findingTable(findingRows(low, costFor, lowSum)),
         ),
       );
@@ -1195,13 +1261,13 @@ function renderDamage(r) {
   }
   const missing = mainSum.unpriced;
   const lines = [];
-  if (missing > 0) lines.push(el("div", { class: "small muted" }, `${missing} item${missing === 1 ? " has" : "s have"} no price data and ${missing === 1 ? "is" : "are"} not included`));
+  if (missing > 0) lines.push(el("div", { class: "small muted" }, `${missing} item${missing === 1 ? "" : "s"} without a price`));
   if (low.length) {
     const all = mainSum.sum + lowSum.sum;
-    lines.push(el("div", { class: "small muted" }, `including low-confidence items: from ${fmtUZS(all)}`));
+    lines.push(el("div", { class: "small muted" }, `with uncertain items: from ${fmtUZS(all)}`));
   }
   total.replaceChildren(
-    el("span", {}, low.length ? `Estimated repair total (score ≥ ${LOW_CONFIDENCE.toFixed(2)})` : "Estimated repair total", ...lines),
+    el("span", {}, "Estimated repair total", ...lines),
     main.length && mainSum.sum > 0 ? el("strong", {}, `from ${fmtUZS(mainSum.sum)}`) : el("span", { class: "muted" }, main.length ? "no price data" : "nothing above the threshold"),
   );
   total.hidden = false;
@@ -1238,7 +1304,7 @@ function renderDiff(job, r) {
   }
   if (diff.first_inspection) {
     box.append(el("p", {}, el("span", { class: "badge info" }, "First inspection of this VIN")));
-    box.append(el("p", { class: "small muted" }, "The next inspection of this car will show what changed since today."));
+    box.append(el("p", { class: "small muted" }, "The next inspection will show what changed."));
     return;
   }
   if (!Array.isArray(diff.new)) {
@@ -1258,7 +1324,7 @@ function renderDiff(job, r) {
   }
   const uncertain = Array.isArray(diff.uncertain) ? diff.uncertain : [];
   if (uncertain.length) {
-    box.append(el("div", { class: "diff-group uncertain" }, el("h3", {}, `Seen before, only low confidence now (${uncertain.length})`), el("ul", {}, uncertain.map((x) => el("li", {}, diffItemText(x))))));
+    box.append(el("div", { class: "diff-group uncertain" }, el("h3", {}, `Now uncertain (${uncertain.length})`), el("ul", {}, uncertain.map((x) => el("li", {}, diffItemText(x))))));
   }
   const unchanged = Array.isArray(diff.unchanged) ? diff.unchanged : [];
   if (unchanged.length) {
@@ -1267,13 +1333,11 @@ function renderDiff(job, r) {
   const possible = Array.isArray(diff.possible_changes) ? diff.possible_changes : [];
   if (possible.length) {
     box.append(el("details", { class: "more" },
-      el("summary", {}, `Possible changes, low confidence - please verify (${possible.length})`),
+      el("summary", {}, `Possible changes - please check (${possible.length})`),
       el("ul", { class: "notes" }, possible.map((x) => el("li", {}, `${diffItemText(x)} (${x.direction === "appeared" ? "appeared" : "disappeared"})`)))));
   }
-  if (diff.rule) box.append(el("p", { class: "small muted" }, `How changes are judged: ${diff.rule}.`));
-  if (diff.previous_created_utc || diff.previous_id) {
-    box.append(el("p", { class: "small muted" }, `Compared with inspection ${diff.previous_id || ""}${diff.previous_created_utc ? " of " + fmtDate(diff.previous_created_utc) : ""}`));
-  }
+  if (diff.previous_created_utc) box.append(el("p", { class: "small muted" }, `Compared with the inspection of ${fmtDateShort(diff.previous_created_utc)}.`));
+  if (diff.rule) box.append(el("details", { class: "more" }, el("summary", {}, "How changes are judged"), el("p", { class: "small muted" }, `${diff.rule}.`)));
 }
 
 async function renderHistory(r, job) {
@@ -1413,7 +1477,7 @@ function viewText() {
 function showOriginal() {
   state.tryonToken += 1;
   $("#tryon-img").src = spin.urls[tryon.idx];
-  $("#tryon-label").textContent = `Original photo · ${viewText()}`;
+  $("#tryon-label").textContent = `Original · ${viewText()}`;
   $("#tryon-status").textContent = "";
   $("#tryon-figure").hidden = false;
 }
@@ -1423,7 +1487,7 @@ async function loadTryon(c, hex) {
   if (!frame || !state.jobId) return;
   const token = ++state.tryonToken;
   const st = $("#tryon-status");
-  st.replaceChildren(el("span", { class: "spinner", "aria-hidden": "true" }), ` Painting ${viewText()} ${c.name || "#" + hex}…`);
+  st.replaceChildren(el("span", { class: "spinner", "aria-hidden": "true" }), ` Painting ${c.name || "#" + hex}…`);
   st.className = "small";
   const url = `${inspectionUrl(state.jobId)}/tryon?colour=${encodeURIComponent(hex)}&frame=${encodeURIComponent(frame)}`;
   try {
@@ -1445,8 +1509,8 @@ async function loadTryon(c, hex) {
     $("#tryon-img").src = state.tryonUrl;
     const src = safeHref(c.source_url);
     const label = $("#tryon-label");
-    label.replaceChildren(`${c.name || "#" + hex}${c.model ? " (" + c.model + ")" : ""} · #${hex.toUpperCase()} · ${viewText()}`);
-    if (src) label.append(" · ", el("a", { href: src, target: "_blank", rel: "noopener" }, "colour source"));
+    label.replaceChildren(`${c.name || "#" + hex} · ${viewText()}`);
+    if (src) label.append(" · ", el("a", { href: src, target: "_blank", rel: "noopener" }, "source"));
     $("#tryon-figure").hidden = false;
     st.textContent = "";
   } catch (e) {
@@ -1484,12 +1548,12 @@ function fmtDevice(dev) {
 function reuseNote(r) {
   if (!r || !r.reused) return null;
   const d = r.reused_from_created_utc ? new Date(r.reused_from_created_utc) : null;
-  const when = d && !Number.isNaN(d.getTime()) ? d.toLocaleString() : r.reused_from_created_utc || "an earlier date";
+  const when = d && !Number.isNaN(d.getTime()) ? fmtDateShort(r.reused_from_created_utc) : r.reused_from_created_utc || "an earlier date";
   const took = fmtBuildTime(r.original_seconds);
   const dev = fmtDevice(r.original_device);
-  const orig = took ? ` (originally built in ${took}${dev ? ` on ${dev}` : ""})` : "";
+  const orig = took ? ` (first built in ${took}${dev ? ` on ${dev}` : ""})` : "";
   return el("span", { class: "small muted", style: { display: "block" } },
-    `Reused from the inspection of ${when} of the same video${orig}: identical blurred frames (SHA-256) and settings, so the stored model was attached instead of rebuilding it.`);
+    `Same video as the inspection of ${when}, so the saved model was reused${orig}.`);
 }
 const HQ_ACTIVE = new Set(["waiting", "queued", "running"]);
 
@@ -1579,17 +1643,17 @@ function renderRecon(r) {
   switch (r.status) {
     case "not_started":
       badge.className = "badge";
-      st.textContent = "3D reconstruction has not started yet. Waiting for the server…";
+      st.textContent = "Waiting to start…";
       break;
     case "queued":
     case "running":
       badge.className = "badge info";
-      st.replaceChildren(el("span", { class: "spinner", "aria-hidden": "true" }), " Building 3D model... (this can take several minutes)");
+      st.replaceChildren(el("span", { class: "spinner", "aria-hidden": "true" }), " Building the 3D model… (a few minutes)");
       break;
     case "done": {
       badge.className = "badge ok";
       const secs = Number(r.seconds);
-      st.textContent = `3D model built${Number.isFinite(secs) ? ` in ${secs.toFixed(0)} s` : ""} from the blurred walkaround frames.`;
+      st.textContent = `Built${Number.isFinite(secs) ? ` in ${secs.toFixed(0)} s` : ""}.`;
       const reusedNote = reuseNote(r);
       if (reusedNote) st.append(reusedNote);
       const ply = safeHref(r.ply);
@@ -1611,7 +1675,7 @@ function renderRecon(r) {
       break;
     case "unavailable":
       badge.className = "badge warn";
-      st.textContent = `3D reconstruction is not available on this server${r.error ? ` (${r.error})` : ""}. The 360° view above is built from the same frames.`;
+      st.textContent = `Not available on this server${r.error ? ` (${r.error})` : ""}. Use the 360° view in the Car tab.`;
       break;
     default:
       badge.className = "badge";
@@ -1628,7 +1692,7 @@ function renderReconPins(pins) {
   const box = $("#recon-pins");
   box.replaceChildren();
   if (!pins.length) {
-    box.append(el("p", { class: "small muted" }, "No damage was placed on the 3D model."));
+    box.append(el("p", { class: "small muted" }, "No damage pins in 3D."));
     return;
   }
   box.append(
@@ -1694,12 +1758,9 @@ function renderHq(h) {
     case "queued":
     case "running": {
       badge.className = "badge info";
-      let text = h.status === "waiting" ? " Waiting for the point-cloud 3D job, then building the high-quality 3D on the GPU" : " Building the high-quality 3D on the GPU";
+      let text = h.status === "waiting" ? " Waiting for the quick model first" : " Building on the GPU";
       const prevMin = prev ? fmtMin(prev.seconds_total) : null;
-      if (prevMin && prev.steps) {
-        text += ` (the last build on this server took ${prevMin} for ${Number(prev.steps).toLocaleString()} steps from ${prev.n_images ?? "?"} frames; measured)`;
-      }
-      if (Number.isFinite(Number(h.n_frames))) text += ` · ${h.n_frames} blurred frames`;
+      if (prevMin) text += ` (last build took ${prevMin})`;
       st.replaceChildren(el("span", { class: "spinner", "aria-hidden": "true" }), `${text}…`);
       break;
     }
@@ -1718,17 +1779,19 @@ function renderHq(h) {
         parts.push(`PSNR ${Number(rep.psnr).toFixed(1)} dB whole image${car}${nv}`);
       }
       if (rep.steps) parts.push(`${Number(rep.steps).toLocaleString()} training steps`);
-      st.textContent = parts.length ? `High-quality 3D ${parts.join(" · ")}.` : "High-quality 3D built.";
+      const reg = rep.n_registered != null && rep.n_images != null ? ` from ${rep.n_registered} frames` : "";
+      st.textContent = total ? `Built in ${total}${reg}.` : "Built.";
+      $("#hq-details").replaceChildren(...parts.map((p) => el("li", {}, p)));
       const hqReuse = reuseNote(h);
       if (hqReuse) st.append(hqReuse);
-      if (h.pins_note) st.append(el("span", { class: "small muted", style: { display: "block" } }, `Note: ${h.pins_note}.`));
+      if (h.pins_note) $("#hq-details").append(el("li", {}, `${h.pins_note}.`));
       const crop = rep.crop && typeof rep.crop === "object" ? rep.crop : null;
       const full = safeHref(h.splat_full);
       const note = $("#hq-crop");
       note.replaceChildren();
       if (h.cropped && crop && Number.isFinite(Number(crop.n_splats_car))) {
         note.append(
-          `Cropped to the car: ${Number(crop.n_splats_car).toLocaleString()} of ${Number(crop.n_splats).toLocaleString()} Gaussians kept (box from the structure-from-motion points inside the car masks; background and oversized "streak" Gaussians removed).`,
+          `Cropped to the car: ${Number(crop.n_splats_car).toLocaleString()} of ${Number(crop.n_splats).toLocaleString()} Gaussians kept.`,
           full ? el("span", {}, " ", el("a", { href: full, download: "" }, "Download the uncropped model (.ply)")) : null,
         );
       }
@@ -1782,7 +1845,7 @@ function setShopsStatus(text, isError = false) {
 
 function findShopsHere() {
   if (!("geolocation" in navigator)) {
-    setShopsStatus("This browser cannot share its location. Use the Tashkent centre button instead.", true);
+    setShopsStatus("Location is not available here. Use Tashkent centre.", true);
     return;
   }
   setShopsStatus("Asking for your location…");
@@ -1790,16 +1853,14 @@ function findShopsHere() {
     (pos) => fetchShops(pos.coords.latitude, pos.coords.longitude, "your location"),
     (err) => {
       const why = err && err.code === 1 ? "permission denied" : err && err.code === 3 ? "timed out" : (err && err.message) || "unavailable";
-      setShopsStatus(`Location ${why}. Use the Tashkent centre button instead.`, true);
+      setShopsStatus(`Location ${why}. Use Tashkent centre.`, true);
     },
     { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 },
   );
 }
 
-const SHOP_TAG_KEYS = ["shop", "craft", "service", "opening_hours"];
-
 async function fetchShops(lat, lon, label) {
-  setShopsStatus(`Searching OpenStreetMap within ${SHOP_RADIUS_M / 1000} km of ${label}…`);
+  setShopsStatus(`Searching within ${SHOP_RADIUS_M / 1000} km of ${label}…`);
   const list = $("#shops-list");
   const attr = $("#shops-attr");
   list.replaceChildren();
@@ -1816,15 +1877,14 @@ async function fetchShops(lat, lon, label) {
   setShopsStatus(
     shops.length
       ? `${shops.length} place${shops.length === 1 ? "" : "s"} within ${SHOP_RADIUS_M / 1000} km of ${label}.`
-      : `No body or paint shops found in OpenStreetMap within ${SHOP_RADIUS_M / 1000} km of ${label}.`,
+      : `No shops found within ${SHOP_RADIUS_M / 1000} km of ${label}.`,
   );
   for (const s of shops) {
     const tags = s.tags && typeof s.tags === "object" ? s.tags : {};
     const meta = [];
-    if (s.match) meta.push(`matched: ${humanize(s.match)}`);
-    for (const k of SHOP_TAG_KEYS) if (tags[k]) meta.push(`${humanize(k)}: ${tags[k]}`);
     const addr = [tags["addr:street"], tags["addr:housenumber"]].filter(Boolean).join(" ");
     if (addr) meta.push(addr);
+    if (tags.opening_hours) meta.push(`Open ${tags.opening_hours}`);
     const links = [];
     if (Number.isFinite(Number(s.lat)) && Number.isFinite(Number(s.lon))) {
       const la = Number(s.lat).toFixed(6);
@@ -1849,8 +1909,7 @@ async function fetchShops(lat, lon, label) {
   attr.replaceChildren(
     "Data ",
     el("a", { href: attrHref, target: "_blank", rel: "noopener" }, "© OpenStreetMap contributors"),
-    data.source ? ` · via ${data.source}` : "",
-    data.fetched_utc ? ` · fetched ${fmtDate(data.fetched_utc)}` : "",
+
   );
   attr.hidden = false;
 }
@@ -1860,12 +1919,12 @@ async function fetchShops(lat, lon, label) {
 function renderVerification(job, r, extra, media) {
   const kv = $("#verify-kv");
   kv.replaceChildren(
-    el("dt", {}, "Frames SHA-256"),
+    el("dt", {}, "Fingerprint (SHA-256)"),
     el("dd", {}, r.frames_sha256 ? el("div", { class: "hash" }, r.frames_sha256) : el("span", { class: "muted" }, "not reported")),
     el("dt", {}, "Created"),
-    el("dd", {}, fmtDate(r.created_utc)),
+    el("dd", {}, fmtDateShort(r.created_utc) || "not reported"),
     el("dt", {}, "Inspection"),
-    el("dd", {}, el("code", {}, String(job.inspection_id ?? job.id ?? state.jobId))),
+    el("dd", {}, el("code", {}, String(job.id ?? state.jobId))),
   );
   if (Number.isFinite(Number(extra.frames))) kv.append(el("dt", {}, "Frames analysed"), el("dd", {}, String(extra.frames)));
   else if (Array.isArray(extra.frames)) kv.append(el("dt", {}, "Frames analysed"), el("dd", {}, String(extra.frames.length)));
@@ -1977,6 +2036,7 @@ function init() {
     });
   }
   $("#vin-text").addEventListener("input", onVinTextInput);
+  $("#demo-btn").addEventListener("click", useDemo);
   $("#capture-form").addEventListener("submit", (e) => {
     e.preventDefault();
     startUpload();

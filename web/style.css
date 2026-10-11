@@ -1373,3 +1373,22 @@ tr.flash > td { animation: flash-row 2.4s ease-out; }
 
   .tryon-layout { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
 }
+
+/* demo car shortcut on the upload card */
+.demo-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  border: 1px dashed var(--accent);
+  background: var(--accent-soft);
+}
+
+.demo-box[hidden] { display: none; }
+.demo-text { display: flex; flex-direction: column; min-width: 0; }
+.demo-text .small { overflow-wrap: anywhere; }
+.btn-outline.active { border-color: var(--accent); color: var(--accent); }

@@ -76,9 +76,14 @@
     <!-- ========== 1. Capture ========== -->
     <section id="capture" class="card" aria-labelledby="capture-title">
       <h2 id="capture-title">Record or upload</h2>
-      <p class="lead">Record a 30&ndash;60&nbsp;s walkaround of the car and a close-up of the VIN plate. The passport is built from these files.</p>
+      <p class="lead">Film the car all the way round (30&ndash;60&nbsp;s), then photograph the VIN plate.</p>
 
       <form id="capture-form" novalidate>
+        <div id="demo-box" class="demo-box" hidden>
+          <div class="demo-text"><strong>Demo car</strong><span id="demo-files" class="small muted"></span></div>
+          <button id="demo-btn" class="btn btn-outline" type="button">Use demo car</button>
+        </div>
+
         <fieldset>
           <legend>1. Walkaround video <span class="muted small">(required)</span></legend>
           <div class="file-row">
@@ -116,14 +121,14 @@
           <p id="vin-text-hint" class="file-info muted small">Leave empty to read the VIN from the photo.</p>
         </fieldset>
 
-        <details class="tips" open>
-          <summary>Capture tips</summary>
+        <details class="tips">
+          <summary>Tips for a good video</summary>
           <ul>
-            <li>Walk slowly all the way around the car, about 2&ndash;3&nbsp;m away.</li>
-            <li>Keep the whole car in frame; hold the phone steady.</li>
-            <li>Daylight works best; avoid filming straight into the sun.</li>
-            <li>VIN photo: close-up, sharp, without glare or reflections.</li>
-            <li>Try to keep people out of the shot. Plates and faces are blurred before anything is stored.</li>
+            <li>Walk slowly round the car, 2&ndash;3&nbsp;m away.</li>
+            <li>Keep the whole car in frame.</li>
+            <li>Daylight is best; don&rsquo;t film into the sun.</li>
+            <li>VIN photo: close, sharp, no glare.</li>
+            <li>Plates and faces are blurred automatically.</li>
           </ul>
         </details>
 
@@ -188,7 +193,7 @@
                 <div id="sum-chips" class="sev-chips"></div>
                 <p id="sum-note" class="small muted" style="margin:0.5rem 0 0"></p>
                 <div class="sum-cost">
-                  <span class="small muted">Total estimated repair cost</span>
+                  <span class="small muted">Estimated repair cost</span>
                   <strong id="sum-total">&hellip;</strong>
                   <span id="sum-total-note" class="small muted"></span>
                 </div>
@@ -200,7 +205,7 @@
                 <button class="row-link" type="button" data-go="model3d"><span class="rl-label">3D model</span><span id="tile-3d" class="rl-value">&hellip;</span><span id="tile-3d-sub" class="rl-sub"></span><svg class="ico rl-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
                 <button class="row-link" type="button" data-go="report"><span class="rl-label">Report</span><span id="tile-report" class="rl-value">&hellip;</span><span id="tile-report-sub" class="rl-sub"></span><svg class="ico rl-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
               </div>
-              <p class="hint-line"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 16.5v-5M12 8h.01"/></svg><span>Drag the car sideways to turn it. Coloured boxes mark detected damage; tap a part below to see its repair estimate.</span></p>
+              <p class="hint-line"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 16.5v-5M12 8h.01"/></svg><span>Drag to turn the car. Tap a part to see its repair.</span></p>
               <h3 id="parts-title" class="parts-title">Parts with findings</h3>
               <ul id="parts-list" class="parts-list"></ul>
             </aside>
@@ -209,11 +214,11 @@
 
         <!-- VIN & history -->
         <div id="panel-vin" class="tab-panel" role="tabpanel" aria-labelledby="tab-vin" tabindex="-1" hidden>
-          <p class="panel-intro">The car&rsquo;s identity, read from the VIN plate photo, and what changed since its last AvtoPassport inspection.</p>
+          <p class="panel-intro">The car&rsquo;s VIN and what changed since its last inspection.</p>
           <div id="vin-card" class="card" aria-labelledby="vin-title">
             <h2 id="vin-title">VIN <span id="vin-status" class="badge"></span></h2>
             <div id="vin-value" class="vin-value"></div>
-            <p class="note">Please confirm the VIN against the car or its documents: automatic reading (OCR) can confuse similar characters.</p>
+            <p class="note">Check the VIN against the car&rsquo;s documents.</p>
             <div id="vin-decode"></div>
           </div>
           <div id="diff-card" class="card" aria-labelledby="diff-title">
@@ -225,39 +230,46 @@
 
         <!-- Defects -->
         <div id="panel-defects" class="tab-panel" role="tabpanel" aria-labelledby="tab-defects" tabindex="-1" hidden>
-          <p class="panel-intro">Every finding from the walkaround video with its severity, the suggested repair and a price from local listings. The boxes on the car are in the <a href="#overview">Car</a> tab.</p>
+          <p class="panel-intro">Each damage, what to do about it, and the starting price.</p>
           <div id="damage-card" class="card" aria-labelledby="damage-title">
             <h2 id="damage-title">Damage and repair cost <span id="damage-count" class="badge"></span></h2>
             <div id="damage-body"></div>
             <div id="damage-total" class="total" hidden></div>
-            <p class="small muted" style="margin-top:0.6rem">Prices are &ldquo;from&rdquo; prices from our local price table; tap a price to see where it comes from.</p>
+            <p class="small muted" style="margin-top:0.6rem">Starting prices from Tashkent shops. Tap a price for its source.</p>
           </div>
         </div>
 
         <!-- 3D model -->
         <div id="panel-model3d" class="tab-panel" role="tabpanel" aria-labelledby="tab-model3d" tabindex="-1" hidden>
-          <p class="panel-intro">A 3D model of the car, rebuilt on the server from the same blurred frames. One finger (or the mouse) rotates; two fingers or the wheel zoom.</p>
+          <p class="panel-intro">Drag to rotate. Pinch or scroll to zoom.</p>
           <div id="hq-card" class="card" aria-labelledby="hq-title" hidden>
-            <h2 id="hq-title">High-quality 3D (Gaussian splats) <span id="hq-badge" class="badge"></span></h2>
+            <h2 id="hq-title">Detailed 3D model <span id="hq-badge" class="badge"></span></h2>
             <p id="hq-status" role="status"></p>
             <div id="viewer-hq" hidden></div>
-            <p id="hq-crop" class="small muted"></p>
             <p id="hq-error" class="error" hidden></p>
-            <p class="small muted">Camera poses from COLMAP structure-from-motion, then Brush Gaussian-splat training, on the same blurred frames. Requires a GPU worker; not available on the CPU-only public deployment.</p>
+            <details class="more">
+              <summary>Details</summary>
+              <ul id="hq-details" class="notes"></ul>
+              <p class="small muted" style="margin:0.4rem 0 0">Gaussian splats: COLMAP camera poses, then Brush training, on the blurred frames. Needs a GPU server.</p>
+              <p id="hq-crop" class="small muted" style="margin:0.4rem 0 0"></p>
+            </details>
           </div>
           <div id="recon-card" class="card" aria-labelledby="recon-title">
-            <h2 id="recon-title">3D point cloud <span id="recon-badge" class="badge"></span></h2>
+            <h2 id="recon-title">Quick 3D model <span id="recon-badge" class="badge"></span></h2>
             <p id="recon-status" role="status"></p>
             <div id="viewer3d" hidden></div>
             <p id="recon-error" class="error" hidden></p>
-            <div id="recon-pins"></div>
-            <p class="small muted">Fast reconstruction (Depth Anything 3) from the blurred walkaround frames, built after the passport is returned.</p>
+            <details class="more">
+              <summary>Details</summary>
+              <p class="small muted" style="margin:0.4rem 0 0">Point cloud from Depth Anything 3 on the blurred frames.</p>
+              <div id="recon-pins"></div>
+            </details>
           </div>
         </div>
 
         <!-- Customize (paint try-on) -->
         <div id="panel-tryon" class="tab-panel" role="tabpanel" aria-labelledby="tab-tryon" tabindex="-1" hidden>
-          <p class="panel-intro">See the car in another paint colour. Choose a view of the car with the slider, then tap a colour.</p>
+          <p class="panel-intro">Pick a view of the car, then tap a colour.</p>
           <div id="tryon-card" class="card" aria-labelledby="tryon-title">
             <h2 id="tryon-title">Paint try-on</h2>
             <div class="tryon-layout">
@@ -277,7 +289,10 @@
                 <div id="palette-status" class="small muted"></div>
                 <div id="swatches" class="swatches" role="group" aria-label="Paint colours"></div>
                 <p id="tryon-status" class="small" role="status"></p>
-                <p class="small muted">How it works: only the hue of the painted panels changes, and the car&rsquo;s own light and shade are kept, so it still looks like the real photo. A light car therefore stays light: dark colours such as black or dark grey cannot be shown this way and are not offered. Colours are swatches from the BYD Uzbekistan website, not factory paint codes.</p>
+                <details class="more">
+                  <summary>How it works</summary>
+                  <p class="small muted" style="margin:0.4rem 0 0">Only the paint&rsquo;s hue changes; the real light and shade stay. So dark colours like black can&rsquo;t be shown and are left out. Colours come from the BYD Uzbekistan website.</p>
+                </details>
               </div>
             </div>
           </div>
@@ -285,12 +300,12 @@
 
         <!-- Body shops -->
         <div id="panel-shops" class="tab-panel" role="tabpanel" aria-labelledby="tab-shops" tabindex="-1" hidden>
-          <p class="panel-intro">Body-repair and paint shops near you, from OpenStreetMap. Your location is used only for this search.</p>
+          <p class="panel-intro">Body and paint shops near you (OpenStreetMap).</p>
           <div id="shops-card" class="card" aria-labelledby="shops-title">
             <h2 id="shops-title">Nearby body shops</h2>
             <div class="row">
-              <button id="shops-geo" class="btn btn-primary" type="button">Find nearby body shops</button>
-              <button id="shops-tashkent" class="btn" type="button">Use Tashkent centre (41.3111, 69.2797)</button>
+              <button id="shops-geo" class="btn btn-primary" type="button">Use my location</button>
+              <button id="shops-tashkent" class="btn" type="button">Use Tashkent centre</button>
             </div>
             <p id="shops-status" class="small" role="status" style="margin-top:0.6rem"></p>
             <ul id="shops-list" class="shops-list"></ul>
@@ -300,7 +315,7 @@
 
         <!-- Report & verification -->
         <div id="panel-report" class="tab-panel" role="tabpanel" aria-labelledby="tab-report" tabindex="-1" hidden>
-          <p class="panel-intro">Download the passport as a PDF. The SHA-256 fingerprint of the frames lets anyone check that the inspection was not changed afterwards.</p>
+          <p class="panel-intro">Download the PDF. Its fingerprint (SHA-256) proves the photos were not changed later.</p>
           <div id="verify-card" class="card" aria-labelledby="verify-title">
             <h2 id="verify-title">Report and verification</h2>
             <div class="row" id="report-links"></div>

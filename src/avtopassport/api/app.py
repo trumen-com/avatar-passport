@@ -103,6 +103,14 @@ def _findings_of(inspection: dict[str, Any]) -> list[Any]:
     return list((result or {}).get("findings") or []) if isinstance(result, dict) else []
 
 
+def _link_or_copy(src: Path, dest: Path) -> Path:
+    try:
+        os.link(src, dest)
+    except OSError:
+        shutil.copyfile(src, dest)
+    return dest
+
+
 def _tryon_colours(palette: Any) -> Any:
     """Drop swatches marked "tryon": false. The try-on keeps each pixel's lightness and changes only the hue, so
     dark neutral swatches (black, dark grey) would look like the original car on a light car."""
@@ -166,7 +174,21 @@ def create_app(*, settings: Settings | None = None, backends: Backends | None = 
                 "models_error": jobs.models_error, "recon3d_available": ok3d, "recon3d_message": msg3d,
                 "hq3d_enabled": settings.enable_hq3d,
                 "version": __version__, "commit": commit_sha(), "queue": jobs.queue_sizes(),
-                "persistence": persist.status()}
+                "persistence": persist.status(), "demo": _demo_info()}
+
+    def _demo_files() -> tuple[Path | None, Path | None]:
+        """The demo walkaround (and VIN photo) on this server, when present with a supported extension."""
+        video, vin = settings.demo_video, settings.demo_vin
+        ok_video = video if video is not None and video.suffix.lower() in VIDEO_EXT and video.is_file() else None
+        ok_vin = vin if vin is not None and vin.suffix.lower() in PHOTO_EXT and vin.is_file() else None
+        return ok_video, (ok_vin if ok_video else None)
+
+    def _demo_info() -> dict[str, Any] | None:
+        video, vin = _demo_files()
+        if video is None:
+            return None
+        return {"video": video.name, "video_bytes": video.stat().st_size,
+                "vin_photo": vin.name if vin else None, "vin_photo_bytes": vin.stat().st_size if vin else None}
 
     @app.get("/api/version")
     def version() -> dict[str, Any]:
@@ -209,6 +231,25 @@ def create_app(*, settings: Settings | None = None, backends: Backends | None = 
             raise
         text = (vin_text or "").strip() or None
         jobs.submit(job_id, video_path, vin_photo=photo_path, vin_text=text)
+        return {"id": job_id, "status_url": f"{API_PREFIX}/{job_id}"}
+
+    @app.post(f"{API_PREFIX}/demo", status_code=202)
+    def create_demo_inspection(vin_text: Annotated[str | None, Form(max_length=40)] = None) -> dict[str, Any]:
+        """Same pipeline as an upload, on the demo walkaround already on this server (AVTO_DEMO_VIDEO / AVTO_DEMO_VIN),
+        so the phone does not have to send the files. 404 when this server has no demo files."""
+        video, vin = _demo_files()
+        if video is None:
+            raise HTTPException(404, "this server has no demo walkaround")
+        job_id = jobs.new_job_id()
+        updir = jobs.upload_dir(job_id)
+        updir.mkdir(parents=True, exist_ok=True)
+        try:  # the worker deletes the upload folder afterwards, so link (or copy) instead of pointing at the originals
+            video_path = _link_or_copy(video, updir / f"video{video.suffix.lower()}")
+            photo_path = _link_or_copy(vin, updir / f"vin_photo{vin.suffix.lower()}") if vin else None
+        except BaseException:
+            shutil.rmtree(jobs.job_dir(job_id), ignore_errors=True)
+            raise
+        jobs.submit(job_id, video_path, vin_photo=photo_path, vin_text=(vin_text or "").strip() or None)
         return {"id": job_id, "status_url": f"{API_PREFIX}/{job_id}"}
 
     def _job_or_404(job_id: str) -> dict[str, Any]:

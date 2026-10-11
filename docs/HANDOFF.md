@@ -48,6 +48,12 @@ Read this first. Kept up to date during the night; see `git log` for the exact o
   - The 3D models only download when the 3D tab is opened.
   - Customize has its own view picker. Black, Gray and Silver were removed from the try-on (`"tryon": false` in
     `colours.json`). The try-on keeps the car's own lightness, so on a light car they looked unchanged.
+- **"Use demo car" button** on the upload page:
+  - It runs a normal inspection on `data/raw/video/360VIEW.mp4` + `data/raw/vin/VIN_NUMBER1.jpg`, which are already on
+    the laptop, so nothing is uploaded from the phone.
+  - Other files can be set with `AVTO_DEMO_VIDEO` / `AVTO_DEMO_VIN`; an empty `AVTO_DEMO_VIDEO=` hides the button.
+  - The raw files are gitignored, so the public Space has no button.
+- **Shorter page texts:** one plain line per section; technical details sit under "Details".
 - **Screenshots for the deck** (VIN masked, demo car undamaged): `docs/assets/screenshots/`.
 - **Docker:** not built, because docker is not on this laptop. Both of the image's Python environments were installed
   from scratch in clean venvs, and the full test suite passes there on CPU only.

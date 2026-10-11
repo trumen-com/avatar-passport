@@ -45,7 +45,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 
-from ..paths import REPO_ROOT
+from ..paths import RAW, REPO_ROOT
 from . import reuse3d
 
 log = logging.getLogger("avtopassport.api.jobs")
@@ -300,6 +300,16 @@ def _env_flag(name: str, default: bool) -> bool:
     return value.strip().lower() not in {"0", "false", "no", "off"}
 
 
+# The team's own demo walkaround (gitignored, so only on the laptop). Empty AVTO_DEMO_VIDEO= turns the button off.
+DEFAULT_DEMO_VIDEO = RAW / "video" / "360VIEW.mp4"
+DEFAULT_DEMO_VIN = RAW / "vin" / "VIN_NUMBER1.jpg"
+
+
+def _demo_path(env: str, default: Path) -> Path | None:
+    value = os.environ.get(env)
+    return (Path(value) if value.strip() else None) if value is not None else default
+
+
 @dataclass
 class Settings:
     data_dir: Path
@@ -313,6 +323,8 @@ class Settings:
     enable_hq3d: bool = False              # AVTO_HQ3D=1: optional GPU-only SfM + Gaussian-splat stage
     hq3d_steps: int = 30_000               # AVTO_HQ3D_STEPS: Brush training steps
     reuse_3d: bool = True                  # AVTO_REUSE_3D=0: always rebuild, never attach a stored build
+    demo_video: Path | None = None         # AVTO_DEMO_VIDEO: walkaround already on this server ("Use the demo car")
+    demo_vin: Path | None = None           # AVTO_DEMO_VIN: its VIN photo (optional)
 
     @classmethod
     def from_env(cls, data_dir: Path | None = None) -> Settings:
@@ -326,6 +338,8 @@ class Settings:
             enable_hq3d=_env_flag("AVTO_HQ3D", False),
             hq3d_steps=int(os.environ.get("AVTO_HQ3D_STEPS") or 30_000),
             reuse_3d=_env_flag("AVTO_REUSE_3D", True),
+            demo_video=_demo_path("AVTO_DEMO_VIDEO", DEFAULT_DEMO_VIDEO),
+            demo_vin=_demo_path("AVTO_DEMO_VIN", DEFAULT_DEMO_VIN),
         )
 
 

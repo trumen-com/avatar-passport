@@ -413,6 +413,38 @@ def test_tryon_returns_recoloured_jpeg(client: TestClient) -> None:
     assert client.get("/api/inspections/" + "a" * 32 + "/tryon", params={"colour": "FF0000"}).status_code == 404
 
 
+def test_demo_inspection_uses_server_files_and_keeps_them(tmp_path: Path, world: World) -> None:
+    demo = tmp_path / "demo"
+    demo.mkdir()
+    video, photo = demo / "walk.mp4", demo / "vin.jpg"
+    video.write_bytes(MP4[1])
+    photo.write_bytes(b"\xff\xd8\xff\xe0" + b"\x00" * 32)
+    with make_client(tmp_path, world, demo_video=video, demo_vin=photo) as c:
+        info = c.get("/api/health").json()["demo"]
+        assert info == {"video": "walk.mp4", "video_bytes": video.stat().st_size,
+                        "vin_photo": "vin.jpg", "vin_photo_bytes": photo.stat().st_size}
+        r = c.post("/api/inspections/demo", data={"vin_text": VIN})
+        assert r.status_code == 202, r.text
+        assert _jobs(c).wait_idle(15)
+        assert c.get(r.json()["status_url"]).json()["status"] == "done"
+    assert video.read_bytes() == MP4[1] and photo.is_file()  # the worker deleted only its own linked copies
+
+
+def test_demo_inspection_absent_without_files(client: TestClient, tmp_path: Path) -> None:
+    assert client.get("/api/health").json()["demo"] is None
+    assert client.post("/api/inspections/demo").status_code == 404
+
+
+def test_demo_paths_from_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from avtopassport.api.jobs import DEFAULT_DEMO_VIDEO
+    monkeypatch.delenv("AVTO_DEMO_VIDEO", raising=False)
+    assert Settings.from_env(tmp_path).demo_video == DEFAULT_DEMO_VIDEO
+    monkeypatch.setenv("AVTO_DEMO_VIDEO", "")
+    assert Settings.from_env(tmp_path).demo_video is None  # empty turns the demo button off
+    monkeypatch.setenv("AVTO_DEMO_VIDEO", str(tmp_path / "x.mp4"))
+    assert Settings.from_env(tmp_path).demo_video == tmp_path / "x.mp4"
+
+
 def test_palette(client: TestClient) -> None:
     r = client.get("/api/palette")
     assert r.status_code == 200 and r.json()["colours"][0]["hex"] == "#FFFFFF"
