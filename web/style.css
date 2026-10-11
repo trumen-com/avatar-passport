@@ -1042,7 +1042,7 @@ details.low-conf > summary { color: var(--warn); }
   border-bottom: 1px solid var(--border);
 }
 
-.apphead-title { min-width: 0; }
+.apphead-title { min-width: 0; flex: 1 1 200px; }  /* the buttons share the title row when they fit */
 .apphead h1 { margin: 0; font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
 .apphead p { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.85rem; }
 .apphead-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }

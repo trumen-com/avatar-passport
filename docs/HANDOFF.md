@@ -57,8 +57,8 @@ Read this first. Kept up to date during the night; see `git log` for the exact o
 
 ## What you need to do (in this order)
 
-1. **Look at the app on the laptop and your phone.** It was left running on port 8000, with high-quality 3D on. If the laptop restarted, start it again with the README command. Open
-   `http://192.168.1.11:8000` from a phone on the same Wi-Fi.
+1. **Look at the app on the laptop and your phone.** It was left running on port 8000, with high-quality 3D on. If the laptop restarted, start it again with the README command. From a phone on the same network, open
+   `http://<laptop IP>:8000`; `hostname -I` prints the IP, and it changes with the network (Wi-Fi or a phone hotspot).
 2. **GitHub:** create a repository, then run `git remote add origin <url>` and `git push -u origin main`. All commits are
    local. Then set `REPO_URL` in `web/app.js` for the AGPL source link.
 3. **Colab run** of `notebooks/01_smoke_test_colab.ipynb`. The brief requires it. Paste the generated tables back with

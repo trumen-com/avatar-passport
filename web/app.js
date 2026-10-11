@@ -356,6 +356,7 @@ function startUpload() {
   $("#job-status").textContent = "";
   setFormDisabled(true);
   setUpload(0, "Starting upload…");
+  $("#job").scrollIntoView({ block: "center", behavior: "smooth" }); // the progress sits below the form
 
   const xhr = new XMLHttpRequest();
   xhr.open("POST", "/api/inspections");
